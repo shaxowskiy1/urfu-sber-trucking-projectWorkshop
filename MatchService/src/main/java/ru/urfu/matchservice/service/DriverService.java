@@ -6,6 +6,7 @@ import ru.urfu.matchservice.models.Driver;
 import ru.urfu.matchservice.repository.DriverRepository;
 import ru.urfu.matchservice.repository.OrderRepository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +31,13 @@ public class DriverService {
     }
 
     private void solveMatch(CoordinatesDateDTO coordinatesDateDTO, List<Driver> drivers) {
+
+        //берем точку А
+        BigDecimal latitude = coordinatesDateDTO.getLatitude();
+        BigDecimal longitute = coordinatesDateDTO.getLongitute();
+
+
+
 
     }
 }
