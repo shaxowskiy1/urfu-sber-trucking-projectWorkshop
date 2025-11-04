@@ -10,7 +10,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class OrderService {
-    private OrderRepository orderRepository;
+    private final OrderRepository orderRepository;
 
     public Order createOrder(Order order) {
         return orderRepository.save(order);

@@ -11,7 +11,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
     public User login(String inn, String password) {
         return userRepository.findByInnAndPassword(inn, password);

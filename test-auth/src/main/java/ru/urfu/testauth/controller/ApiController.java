@@ -1,6 +1,7 @@
-package controller;
+package ru.urfu.testauth.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.urfu.testauth.models.Order;
@@ -21,6 +22,7 @@ import java.util.Map;
         "http://localhost:3003",
         "http://localhost:3001"
 }, maxAge = 3600)
+@Slf4j
 public class ApiController {
     private final AuthService authService;
     private final OrderService orderService;
@@ -65,6 +67,7 @@ public class ApiController {
 
     @PostMapping("/orders/create")
     public ResponseEntity<?> createOrder(@RequestBody Map<String, Object> request) {
+        log.info("Запрос дошёл");
         List<String> required = List.of("shipperName", "managerName", "origin", "destination", "pickupDate", "deliveryDate", "transportationCost", "vehicleCount");
         List<String> missing = new ArrayList<>();
         for (String f : required)
@@ -100,8 +103,7 @@ public class ApiController {
                         .destinationLatitude(request.get("destinationLatitude")==null?null:Double.valueOf(request.get("destinationLatitude").toString()))
                         .destinationLongitude(request.get("destinationLongitude")==null?null:Double.valueOf(request.get("destinationLongitude").toString()))
                         .trailerType((String) request.getOrDefault("trailerType", null))
-                        .volume(request.get("volume")==null?null:Double.valueOf(request.get("volume").toString()))
-                        .weight(request.get("weight")==null?null:Double.valueOf(request.get("weight").toString()))
+                        .volume(request.get("volume") == null ? 0.0 : Double.valueOf(request.get("volume").toString().replaceAll("[^\\d.-]", "")))                        .weight(request.get("weight")==null?null:Double.valueOf(request.get("weight").toString()))
                         .pickupDate(pickupDate)
                         .pickupTime(request.get("pickupTime")==null?null:LocalTime.parse(request.get("pickupTime").toString()))
                         .deliveryDate(deliveryDate)
@@ -123,6 +125,7 @@ public class ApiController {
                     "createdCount", orders.size()
             ));
         } catch (Exception e) {
+            log.error("Ошибка при создании заказа: ", e); // ← так покажет полный стектрейс
             return ResponseEntity.internalServerError().body(Map.of("message", "Ошибка сервера при создании заказа"));
         }
     }
