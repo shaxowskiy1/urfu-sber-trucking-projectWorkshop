@@ -1,5 +1,6 @@
 package ru.urfu.matchservice.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "orders")
 @Data
+@JsonIgnoreProperties
 public class OrderDTO {
     @Id
     private Integer id;
@@ -36,4 +38,6 @@ public class OrderDTO {
     private String height;
     private Integer assignedDriverId;
     private String externalOrderNumber;
+    @Column(name = "delivery_datetime")
+    private LocalDateTime deliveryDateTime;
 }

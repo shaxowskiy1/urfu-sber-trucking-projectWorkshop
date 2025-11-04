@@ -6,19 +6,25 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Data
 @Entity
 @NoArgsConstructor
 @Table(name = "drivers")
+@AllArgsConstructor
 public class Driver {
     @Id
     private Integer id;
+    private String originLatitude;
+    private String originLongitude;
+    private LocalDateTime deliveryDate;
 
-    private String name;
-
-    public Driver(Integer driverId) {
-        this.id = driverId;
+    public Driver(Integer id, LocalDateTime deliveryDate, String destinationLongitude, String destinationLatitude) {
+        this.id = id;
+        this.deliveryDate = deliveryDate;
+        this.originLatitude = destinationLongitude;
+        this.originLongitude = destinationLatitude;
     }
 }
