@@ -18,7 +18,7 @@ public class OrderController {
         this.driverService = driverService;
     }
 
-    @PostMapping
+    @PostMapping("/api/calculate")
     public ResponseEntity<List<Driver>> getPriorityDrivers(
             @RequestBody CoordinatesDateDTO coordinatesDateDTO
     ){

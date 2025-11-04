@@ -1,14 +1,13 @@
 package ru.urfu.matchservice.models;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 //TODO add foreign key to driver for check free transport on time
 @Entity
+@Table(name = "orders")
 @Data
 public class OrderDTO {
     @Id
@@ -35,9 +34,6 @@ public class OrderDTO {
     private String length;
     private String width;
     private String height;
-    private String assignedDriverId;
+    private Integer assignedDriverId;
     private String externalOrderNumber;
-
-//    @OneToOne()
-    private Integer fkDriver;
 }
