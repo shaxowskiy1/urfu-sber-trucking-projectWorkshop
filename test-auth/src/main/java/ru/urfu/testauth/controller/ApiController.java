@@ -125,7 +125,7 @@ public class ApiController {
                     "createdCount", orders.size()
             ));
         } catch (Exception e) {
-            log.error("Ошибка при создании заказа: ", e); // ← так покажет полный стектрейс
+            log.error("Ошибка при создании заказа: ", e);
             return ResponseEntity.internalServerError().body(Map.of("message", "Ошибка сервера при создании заказа"));
         }
     }
