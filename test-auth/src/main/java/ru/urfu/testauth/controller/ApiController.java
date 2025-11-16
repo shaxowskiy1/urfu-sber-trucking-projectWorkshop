@@ -4,9 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.urfu.testauth.models.GeocodingResponse;
 import ru.urfu.testauth.models.Order;
 import ru.urfu.testauth.models.User;
 import ru.urfu.testauth.service.AuthService;
+import ru.urfu.testauth.service.OpenStreetApi;
 import ru.urfu.testauth.service.OrderService;
 
 import java.time.LocalDate;
@@ -26,6 +28,7 @@ import java.util.Map;
 public class ApiController {
     private final AuthService authService;
     private final OrderService orderService;
+    private final OpenStreetApi openStreetApi;
 
     static String validateFields(User user, boolean isLogin) {
         if (user.getInn() == null || user.getInn().isEmpty() || user.getPassword() == null || user.getPassword().isEmpty()) {
@@ -151,8 +154,8 @@ public class ApiController {
         return ResponseEntity.ok(Map.of("users", users));
     }
 
-//    @GetMapping("/drivers")
-//    public ResponseEntity<?> getDrivers() {
-//        return ResponseEntity.ok(Map.of("drivers", driverService.getAllDrivers()));
-//    }
+    @GetMapping("/test")
+    public ResponseEntity<GeocodingResponse> testController(@RequestParam String address){
+        return ResponseEntity.ok(openStreetApi.getCoordinates(address));
+    }
 }
