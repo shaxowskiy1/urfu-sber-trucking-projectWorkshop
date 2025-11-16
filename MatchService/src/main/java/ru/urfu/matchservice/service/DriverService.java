@@ -67,11 +67,6 @@ public class DriverService {
             }
 
             double haversineKm = ru.urfu.matchservice.utils.GeoUtils.haversineKm(bLat, bLon, aLat, aLon);
-            if (haversineKm > 300.0) {
-                log.info("Driver {} filtered: haversineKm = {}, getDestinationLongitude = {}",
-                        leg.getDriverId(), haversineKm, leg.getDestinationLongitude());
-                continue;
-            }
 
             long apiSeconds = routeTimeClient.getTravelTimeSeconds(bLat, bLon, aLat, aLon);
             long adjustedTravelSeconds = Math.round(apiSeconds * 1.25);
