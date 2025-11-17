@@ -1,11 +1,13 @@
 package ru.urfu.matchservice.service;
 
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.urfu.matchservice.models.CoordinatesDateDTO;
 import ru.urfu.matchservice.models.DriverLegInfo;
-import ru.urfu.matchservice.models.Driver;
+import ru.urfu.matchservice.models.DriverResponseDTO;
+import ru.urfu.matchservice.repository.DriverRepository;
 import ru.urfu.matchservice.repository.OrderRepository;
 import ru.urfu.matchservice.service.route.RouteTimeClient;
 
@@ -19,16 +21,13 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class DriverService {
     private final OrderRepository orderRepository;
     private final RouteTimeClient routeTimeClient;
+    private final DriverRepository driverRepository;
 
-    public DriverService(OrderRepository orderRepository, RouteTimeClient routeTimeClient) {
-        this.orderRepository = orderRepository;
-        this.routeTimeClient = routeTimeClient;
-    }
-
-    public List<Driver> getDrivers(CoordinatesDateDTO coordinatesDateDTO){
+    public List<DriverResponseDTO> getDrivers(CoordinatesDateDTO coordinatesDateDTO){
         List<DriverLegInfo> lastLegs = orderRepository.findLastLegsBefore(coordinatesDateDTO.getLocalDateTime());
         log.info("The list of drivers is: {}", lastLegs.toString());
         if (lastLegs.isEmpty()) {
@@ -38,7 +37,7 @@ public class DriverService {
         return solveMatch(coordinatesDateDTO, lastLegs);
     }
 
-    private List<Driver> solveMatch(CoordinatesDateDTO coordinatesDateDTO, List<DriverLegInfo> lastLegs) {
+    private List<DriverResponseDTO> solveMatch(CoordinatesDateDTO coordinatesDateDTO, List<DriverLegInfo> lastLegs) {
         BigDecimal targetLat = coordinatesDateDTO.getLatitude();
         BigDecimal targetLon = coordinatesDateDTO.getLongitute();
         LocalDateTime targetTime = coordinatesDateDTO.getLocalDateTime();
@@ -59,10 +58,10 @@ public class DriverService {
             }
 
             long gapHours = Duration.between(leg.getDeliveryDate(), targetTime).toHours();
-            log.info("Driver {}: gapHours = {}, deliveryDate = {}",
+            log.info("DriverResponseDTO {}: gapHours = {}, deliveryDate = {}",
                     leg.getDriverId(), gapHours, leg.getDeliveryDate());
             if (gapHours > 24) {
-                log.info("Driver {} filtered by time gap", leg.getDriverId());
+                log.info("DriverResponseDTO {} filtered by time gap", leg.getDriverId());
                 continue;
             }
 
@@ -75,7 +74,7 @@ public class DriverService {
             LocalDateTime arrivalAtA = earliestDeparture.plusSeconds(adjustedTravelSeconds);
 
             if (arrivalAtA.isAfter(targetTime)) {
-                log.info("Driver {} filtered by afterTargetTime", leg.getDriverId());
+                log.info("DriverResponseDTO {} filtered by afterTargetTime", leg.getDriverId());
                 continue;
             }
 
@@ -84,14 +83,15 @@ public class DriverService {
             candidate.setDestinationLongitude(leg.getDestinationLongitude());
             candidate.setDestinationLatitude(leg.getDestinationLatitude());
             candidate.setDeliveryDate(leg.getDeliveryDate());
+            candidate.setOrigin(leg.getOrigin());
             candidates.add(candidate);
         }
 
         candidates.sort(Comparator.comparingLong(c -> c.rankingSeconds));
 
-        List<Driver> result = new ArrayList<>();
+        List<DriverResponseDTO> result = new ArrayList<>();
         for (Candidate c : candidates) {
-            result.add(new Driver(c.driverId, c.getDeliveryDate(), c.getOriginLatitude(), c.getOriginLongitude()));
+            result.add(new DriverResponseDTO(driverRepository.findById(c.driverId.toString()).get().getName(), c.getOriginLatitude(), c.getOriginLongitude(), c.getDeliveryDate(), c.getOrigin()));
         }
 
         //TODO temporary solution. bug twice answer
@@ -110,6 +110,7 @@ public class DriverService {
         private LocalDateTime deliveryDate;
         private final String originLatitude;
         private final String originLongitude;
+        private String origin;
 
         private Candidate(Integer driverId, long rankingSeconds, String originLatitude, String originLongitude) {
             this.driverId = driverId;

@@ -14,14 +14,16 @@ public class DriverLegInfo {
     private final String originLatitude;
     private final String originLongitude;
     private final LocalDateTime deliveryDate;
+    private String origin;
 
-    public DriverLegInfo(Integer driverId, String destinationLatitude, String destinationLongitude, String originLatitude, String originLongitude, LocalDateTime deliveryDate) {
+    public DriverLegInfo(Integer driverId, String destinationLatitude, String destinationLongitude, String originLatitude, String originLongitude, LocalDateTime deliveryDate, String origin) {
         this.driverId = driverId;
         this.destinationLatitude = destinationLatitude;
         this.destinationLongitude = destinationLongitude;
         this.originLatitude = originLatitude;
         this.originLongitude = originLongitude;
         this.deliveryDate = deliveryDate;
+        this.origin = origin;
     }
 
     @Override

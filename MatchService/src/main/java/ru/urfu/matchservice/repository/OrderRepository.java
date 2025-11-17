@@ -16,7 +16,8 @@ public interface OrderRepository extends JpaRepository<OrderDTO, Integer> {
             "o.destinationLongitude, " +
             "o.originLatitude, " +
             "o.originLongitude, " +
-            "o.deliveryDateTime) " +
+            "o.deliveryDateTime, " +
+            "o.origin) " +
             "from OrderDTO o " +
             "where o.deliveryDateTime = (select max(o2.deliveryDateTime) from OrderDTO o2 where o2.assignedDriverId = o.assignedDriverId and o2.deliveryDateTime < :targetDateTime)")
     List<DriverLegInfo> findLastLegsBefore(@Param("targetDateTime") LocalDateTime targetDateTime);
