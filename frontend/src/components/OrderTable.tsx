@@ -21,11 +21,12 @@ import { CommentModal } from './CommentModal';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { getOrderStatusStyle } from '../utils/orderStatusStyles';
 
 interface Order {
   id: string;
   shipperName: string;
-  managerName: string;
+  managerName?: string;
   origin: string;
   destination: string;
   originLatitude?: string;
@@ -206,20 +207,15 @@ export function OrderTable({
     setEditingDate(null);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Ожидает':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Ожидает</Badge>;
-      case 'Назначен':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Назначен</Badge>;
-      case 'В пути':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">В пути</Badge>;
-      case 'Доставлен':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Доставлен</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+  const getStatusBadge = (status: string) => (
+    <Badge
+      variant="outline"
+      className="border"
+      style={getOrderStatusStyle(status)}
+    >
+      {status}
+    </Badge>
+  );
 
   const handleCreatePass = (order: Order, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -257,126 +253,137 @@ export function OrderTable({
               <TableHead>ID заказа</TableHead>
               <TableHead>ID зак. на др. площ.</TableHead>
               <TableHead>Компания</TableHead>
-              <TableHead>Менеджер</TableHead>
-              <TableHead>Адрес отправления</TableHead>
-              <TableHead>Адрес назначения</TableHead>
-              <TableHead>Дата погрузки</TableHead>
-              <TableHead>Дата выгрузки</TableHead>
+              <TableHead>Маршрут</TableHead>
               <TableHead>Статус</TableHead>
               <TableHead>Стоимость</TableHead>
               <TableHead>Действия</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
+            {[...orders].sort((a, b) => {
+              const idA = parseInt(a.id);
+              const idB = parseInt(b.id);
+              return idB - idA; // Сортировка от большего к меньшему (новые заказы вверху)
+            }).map((order) => (
               <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50">
                 <TableCell className="font-medium">{order.id}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {order.externalOrderNumber || '—'}
                 </TableCell>
                 <TableCell>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCompanyClick(order.shipperName);
-                    }}
-                    className="text-blue-600 hover:text-blue-800 hover:underline text-left"
-                  >
-                    {order.shipperName}
-                  </button>
+                  <div className="space-y-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCompanyClick(order.shipperName);
+                      }}
+                      className="text-blue-600 hover:text-blue-800 hover:underline text-left block"
+                    >
+                      {order.shipperName}
+                    </button>
+                    {order.managerName && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onManagerClick(order.managerName!);
+                        }}
+                        className="text-sm text-muted-foreground hover:text-blue-600 hover:underline text-left block"
+                      >
+                        {order.managerName}
+                      </button>
+                    )}
+                    {!order.managerName && (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onManagerClick(order.managerName);
-                    }}
-                    className="text-blue-600 hover:text-blue-800 hover:underline text-left"
-                  >
-                    {order.managerName}
-                  </button>
-                </TableCell>
-                <TableCell>
-                  <button
-                    onClick={(e) => handleOpenAddressDialog(order, 'origin', e)}
-                    className="text-left hover:bg-muted/50 p-2 rounded-md w-full transition-colors group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm truncate">{order.origin}</div>
-                        {order.originLatitude && order.originLongitude && (
-                          <div className="text-xs text-muted-foreground">
-                            {order.originLatitude}, {order.originLongitude}
+                  <div className="space-y-2">
+                    {/* Отправление - Погрузка */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={(e) => handleOpenAddressDialog(order, 'origin', e)}
+                        className="text-left hover:bg-muted/50 p-2 rounded-md transition-colors group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs text-muted-foreground">Отправление</div>
+                            <div className="text-sm truncate">{order.origin}</div>
+                            {order.originLatitude && order.originLongitude && (
+                              <div className="text-xs text-muted-foreground">
+                                {order.originLatitude}, {order.originLongitude}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                    </div>
-                  </button>
-                </TableCell>
-                <TableCell>
-                  <button
-                    onClick={(e) => handleOpenAddressDialog(order, 'destination', e)}
-                    className="text-left hover:bg-muted/50 p-2 rounded-md w-full transition-colors group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm truncate">{order.destination}</div>
-                        {order.destinationLatitude && order.destinationLongitude && (
-                          <div className="text-xs text-muted-foreground">
-                            {order.destinationLatitude}, {order.destinationLongitude}
+                          <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        </div>
+                      </button>
+                      <button
+                        onClick={(e) => handleOpenDateDialog(order, 'pickup', e)}
+                        className="text-left hover:bg-muted/50 p-2 rounded-md transition-colors group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="text-xs text-muted-foreground">Погрузка</div>
+                            <div className="text-sm">
+                              {new Date(order.pickupDate).toLocaleDateString('ru-RU')}
+                              {order.pickupTime && ` в ${order.pickupTime}`}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                    </div>
-                  </button>
-                </TableCell>
-                <TableCell>
-                  <button
-                    onClick={(e) => handleOpenDateDialog(order, 'pickup', e)}
-                    className="text-left hover:bg-muted/50 p-2 rounded-md w-full transition-colors group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-sm">
-                          {new Date(order.pickupDate).toLocaleDateString('ru-RU')}
-                          {order.pickupTime && ` в ${order.pickupTime}`}
+                          <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                         </div>
-                      </div>
-                      <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                      </button>
                     </div>
-                  </button>
-                </TableCell>
-                <TableCell>
-                  <button
-                    onClick={(e) => handleOpenDateDialog(order, 'delivery', e)}
-                    className="text-left hover:bg-muted/50 p-2 rounded-md w-full transition-colors group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="flex-1">
-                        <div className="text-sm">
-                          {new Date(order.deliveryDate).toLocaleDateString('ru-RU')}
-                          {order.deliveryTime && ` в ${order.deliveryTime}`}
+                    {/* Назначение - Выгрузка */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={(e) => handleOpenAddressDialog(order, 'destination', e)}
+                        className="text-left hover:bg-muted/50 p-2 rounded-md transition-colors group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs text-muted-foreground">Назначение</div>
+                            <div className="text-sm truncate">{order.destination}</div>
+                            {order.destinationLatitude && order.destinationLongitude && (
+                              <div className="text-xs text-muted-foreground">
+                                {order.destinationLatitude}, {order.destinationLongitude}
+                              </div>
+                            )}
+                          </div>
+                          <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                         </div>
-                      </div>
-                      <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                      </button>
+                      <button
+                        onClick={(e) => handleOpenDateDialog(order, 'delivery', e)}
+                        className="text-left hover:bg-muted/50 p-2 rounded-md transition-colors group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1">
+                            <div className="text-xs text-muted-foreground">Выгрузка</div>
+                            <div className="text-sm">
+                              {new Date(order.deliveryDate).toLocaleDateString('ru-RU')}
+                              {order.deliveryTime && ` в ${order.deliveryTime}`}
+                            </div>
+                          </div>
+                          <Edit className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        </div>
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 </TableCell>
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
                 <TableCell>{order.transportationCost.toLocaleString()} руб.</TableCell>
                 <TableCell>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => onOrderClick(order)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-full justify-start"
                     >
                       <Eye className="h-4 w-4" />
                       Просмотр
@@ -385,7 +392,7 @@ export function OrderTable({
                       variant="outline"
                       size="sm"
                       onClick={(e) => handleCreatePass(order, e)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-full justify-start"
                     >
                       <FileText className="h-4 w-4" />
                       Пропуск
@@ -394,7 +401,7 @@ export function OrderTable({
                       variant="outline"
                       size="sm"
                       onClick={(e) => handleCommentClick(order, e)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 w-full justify-start"
                     >
                       <MessageSquare className="h-4 w-4" />
                       Комментарий

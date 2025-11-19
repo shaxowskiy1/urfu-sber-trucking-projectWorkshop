@@ -9,7 +9,7 @@
  * - Просмотр информации о компаниях и менеджерах
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { OrderTable } from './OrderTable';
@@ -25,7 +25,7 @@ import { CompanyOrdersModal } from './CompanyOrdersModal';
 interface Order {
   id: string;                     // Уникальный номер заказа
   shipperName: string;            // Название компании грузоотправителя
-  managerName: string;            // ФИО менеджера
+  managerName?: string;           // ФИО менеджера (опционально)
   origin: string;                 // Адрес отправления
   destination: string;            // Адрес назначения
   originLatitude?: string;        // Широта точки отправления
@@ -185,6 +185,16 @@ export function LogisticianDashboard({
   const [selectedCompany, setSelectedCompany] = useState<string>('');
   const [selectedManager, setSelectedManager] = useState<string>('');
   const [companyOrdersType, setCompanyOrdersType] = useState<'company' | 'manager'>('company');
+  // Убрана предзагрузка водителей при создании заказа
+
+  // Автообновление данных в открытом модальном окне деталей заказа
+  useEffect(() => {
+    if (!isModalOpen || !selectedOrder) return;
+    const fresh = orders.find(o => o.id === selectedOrder.id);
+    if (fresh && fresh !== selectedOrder) {
+      setSelectedOrder(fresh);
+    }
+  }, [orders, isModalOpen, selectedOrder]);
 
   /**
    * Открыть детали заказа
@@ -210,6 +220,11 @@ export function LogisticianDashboard({
     setSelectedManager(managerName);
     setCompanyOrdersType('manager');
     setIsCompanyOrdersOpen(true);
+  };
+
+  // Создание заказа больше не пытается подгружать водителей
+  const handleAddOrderClick = () => {
+    setIsAddOrderModalOpen(true);
   };
 
   const pendingOrders = orders.filter(order => order.status === 'Ожидает').length;
@@ -258,7 +273,7 @@ export function LogisticianDashboard({
             </div>
             <div className="flex gap-2">
               <Button 
-                onClick={() => setIsAddOrderModalOpen(true)}
+                onClick={handleAddOrderClick}
                 className="flex items-center gap-2"
                 variant="outline"
               >

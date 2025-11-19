@@ -13,13 +13,17 @@
  * - Полностью на русском языке с российскими стандартами
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { ShipperDashboard } from './components/ShipperDashboard';
 import { LogisticianDashboard } from './components/LogisticianDashboard';
 import { AuthForm } from './components/AuthForm';
 import { Button } from './components/ui/button';
 import { Truck, Package, LogOut, User } from 'lucide-react';
+import { Toaster } from './components/ui/sonner';
+import { toast } from 'sonner';
+import { updateOrderStatusRequest } from './services/orderApi';
+import { fetchAllOrders, fetchAllDrivers, fetchAllTrucks, fetchAllTrailers, fetchAllFleetAssignments } from './services/dataApi';
 
 /**
  * Интерфейс пользователя системы
@@ -32,79 +36,16 @@ interface User {
 }
 
 // ========================================
-// ТЕСТОВЫЕ ДАННЫЕ
+// ИНТЕРФЕЙСЫ
 // ========================================
-const initialOrders = [
-  {
-    id: '1',
-    shipperName: 'ООО "Металл-Строй"',
-    managerName: 'Сергей Петров',
-    origin: 'Москва, Россия',
-    destination: 'Санкт-Петербург, Россия',
-    trailerType: 'Бортовой',
-    volume: '96 м³',
-    weight: '20,000 кг',
-    pickupDate: '2024-12-15',
-    pickupTime: '09:00',
-    deliveryDate: '2024-12-18',
-    deliveryTime: '15:00',
-    transportationCost: 45000,
-    status: 'Ожидает',
-    cargoType: 'Металлопрокат',
-    specialRequirements: 'Требуется кран для погрузки',
-    length: '12',
-    width: '2.4',
-    height: '3.2',
-    assignedDriverId: null,
-    externalOrderNumber: 'ATI-2024-001'
-  },
-  {
-    id: '2',
-    shipperName: 'ЗАО "Продукты Север"',
-    managerName: 'Анна Смирнова',
-    origin: 'Новосибирск, Россия',
-    destination: 'Екатеринбург, Россия',
-    trailerType: 'Рефрижератор',
-    volume: '82 м³',
-    weight: '18,000 кг',
-    pickupDate: '2024-12-14',
-    deliveryDate: '2024-12-16',
-    transportationCost: 42000,
-    status: 'Назначен',
-    cargoType: 'Скоропортящиеся продукты',
-    specialRequirements: 'Температурный режим: +2 до +4°C',
-    length: '13.6',
-    width: '2.5',
-    height: '2.4',
-    assignedDriverId: 'ВОД-001',
-    externalOrderNumber: 'CARGO-2024-789'
-  },
-  {
-    id: '3',
-    shipperName: 'ИП "Металлолом-Сбыт"',
-    managerName: 'Михаил Козлов',
-    origin: 'Челябинск, Россия',
-    destination: 'Казань, Россия',
-    trailerType: 'Контейнеровоз',
-    volume: '76 м³',
-    weight: '22,000 кг',
-    pickupDate: '2024-12-16',
-    deliveryDate: '2024-12-19',
-    transportationCost: 38000,
-    status: 'Ожидает',
-    cargoType: 'Металлолом',
-    specialRequirements: 'Необходима документация по ГОСТ',
-    length: '12',
-    width: '2.4',
-    height: '2.65',
-    assignedDriverId: null
-  }
-];
 
+/**
+ * Интерфейс заказа на перевозку
+ */
 interface Order {
   id: string;
   shipperName: string;
-  managerName: string;
+  managerName?: string;           // Опционально
   origin: string;
   destination: string;
   originLatitude?: string;
@@ -126,9 +67,12 @@ interface Order {
   width: string;
   height: string;
   assignedDriverId: string | null;
-  externalOrderNumber?: string;
+  externalOrderNumber?: string | null;
 }
 
+/**
+ * Интерфейс водителя
+ */
 interface Driver {
   id: string;
   name: string;
@@ -196,93 +140,6 @@ interface ManagerInfo {
 }
 
 /**
- * Тестовые данные для водителей
- */
-const initialDrivers: Driver[] = [
-  {
-    id: 'ВОД-001',
-    name: 'Иван Петров',
-    phone: '+7 (495) 123-45-67',
-    licenseNumber: 'ВУ-77-123456',
-    availability: 'Доступен',
-    comment: ''
-  },
-  {
-    id: 'ВОД-002',
-    name: 'Алексей Сидоров',
-    phone: '+7 (812) 987-65-43',
-    licenseNumber: 'ВУ-78-789012',
-    availability: 'В рейсе',
-    comment: ''
-  }
-];
-
-const initialTrucks: Truck[] = [
-  {
-    id: 'АВТ-001',
-    make: 'КАМАЗ',
-    model: '5490',
-    year: 2022,
-    licensePlate: 'М123АВ77',
-    vinNumber: 'XTC5490NEO123456',
-    maintenanceStatus: 'Исправен',
-    currentLocation: 'Москва, Россия',
-    comment: ''
-  },
-  {
-    id: 'АВТ-002',
-    make: 'МАЗ',
-    model: '6312',
-    year: 2021,
-    licensePlate: 'В456СД78',
-    vinNumber: 'Y3MAZ6312CJ789012',
-    maintenanceStatus: 'Исправен',
-    currentLocation: 'Санкт-Петербург, Россия',
-    comment: ''
-  }
-];
-
-const initialTrailers: Trailer[] = [
-  {
-    id: 'ПРЦ-001',
-    licensePlate: 'АМ123477',
-    trailerType: 'Бортовой',
-    length: '13.6',
-    width: '2.45',
-    height: '2.9',
-    volume: '96.7 м³',
-    comment: ''
-  },
-  {
-    id: 'ПРЦ-002',
-    licensePlate: 'СК456778',
-    trailerType: 'Контейнеровоз',
-    length: '12.2',
-    width: '2.45',
-    height: '2.7',
-    volume: '80.7 м³',
-    comment: ''
-  }
-];
-
-const initialFleetAssignments: FleetAssignment[] = [
-  {
-    id: 'СВЗ-001',
-    driverId: 'ВОД-001',
-    truckId: 'АВТ-001',
-    trailerId: 'ПРЦ-001',
-    assignedDate: '2024-01-15'
-  },
-  {
-    id: 'СВЗ-002',
-    driverId: 'ВОД-002',
-    truckId: 'АВТ-002',
-    trailerId: 'ПРЦ-002',
-    assignedDate: '2024-02-10'
-  }
-];
-
-/**
  * Главный компонент приложения
  * Управляет состоянием всего приложения и маршрутизацией между интерфейсами
  */
@@ -292,11 +149,12 @@ export default function App() {
   // ========================================
   
   const [user, setUser] = useState<User | null>(null);  // Текущий авторизованный пользователь
-  const [orders, setOrders] = useState<Order[]>(initialOrders);  // Все заказы в системе
-  const [drivers, setDrivers] = useState<Driver[]>(initialDrivers);  // Все водители
-  const [trucks, setTrucks] = useState<Truck[]>(initialTrucks);  // Все тягачи
-  const [trailers, setTrailers] = useState<Trailer[]>(initialTrailers);  // Все прицепы
-  const [fleetAssignments, setFleetAssignments] = useState<FleetAssignment[]>(initialFleetAssignments);  // Назначения автопарка
+  const [orders, setOrders] = useState<Order[]>([]);  // Все заказы в системе
+  const [drivers, setDrivers] = useState<Driver[]>([]);  // Все водители
+  const [trucks, setTrucks] = useState<Truck[]>([]);  // Все тягачи
+  const [trailers, setTrailers] = useState<Trailer[]>([]);  // Все прицепы
+  const [fleetAssignments, setFleetAssignments] = useState<FleetAssignment[]>([]);  // Назначения автопарка
+  const [isLoadingData, setIsLoadingData] = useState(true);  // Индикатор загрузки данных
   
   // Комментарии к компаниям, менеджерам и заказам
   const [comments, setComments] = useState<Comments>({
@@ -311,6 +169,59 @@ export default function App() {
     'Анна Смирнова': { phone: '+7 (495) 987-65-43', email: 'anna.smirnova@produktysever.ru' },
     'Михаил Козлов': { phone: '+7 (495) 555-12-34', email: 'mikhail.kozlov@metallolom.ru' }
   });
+
+  // ========================================
+  // ЗАГРУЗКА ДАННЫХ ИЗ БД
+  // ========================================
+
+  /**
+   * Загрузка всех данных из базы данных при монтировании компонента
+   */
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoadingData(true);
+        
+        // Параллельная загрузка всех данных
+        const [
+          ordersData,
+          driversData,
+          trucksData,
+          trailersData,
+          fleetAssignmentsData
+        ] = await Promise.all([
+          fetchAllOrders(),
+          fetchAllDrivers(),
+          fetchAllTrucks(),
+          fetchAllTrailers(),
+          fetchAllFleetAssignments()
+        ]);
+
+        // Обновление состояния
+        setOrders(ordersData);
+        setDrivers(driversData);
+        setTrucks(trucksData);
+        setTrailers(trailersData);
+        setFleetAssignments(fleetAssignmentsData);
+
+        console.log('✓ Данные загружены из БД:', {
+          заказов: ordersData.length,
+          водителей: driversData.length,
+          тягачей: trucksData.length,
+          прицепов: trailersData.length,
+          связей: fleetAssignmentsData.length
+        });
+
+      } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+        toast.error('Не удалось загрузить данные из базы данных');
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // ========================================
   // ОБРАБОТЧИКИ АУТЕНТИФИКАЦИИ
@@ -387,19 +298,72 @@ export default function App() {
   };
 
   /**
-   * Удаление заказа из системы
+   * Отмена заказа (изменение статуса на "Отменен")
    */
-  const deleteOrder = (orderId: string) => {
-    setOrders(orders.filter(order => order.id !== orderId));
+  const deleteOrder = async (orderId: string) => {
+    try {
+      // Отправляем запрос на бэкенд для обновления статуса
+      const result = await updateOrderStatusRequest(orderId, 'Отменен');
+      
+      if (!result.success) {
+        const msg = (result.error || '').toString().toLowerCase();
+        // Если сервер не знает о заказе, обновляем локально
+        if (msg.includes('не найден') || msg.includes('not found')) {
+          setOrders(orders.map(order => 
+            order.id === orderId ? { ...order, status: 'Отменен' } : order
+          ));
+          toast.info('Заказ отменён локально (на сервере заказ не найден)');
+          return;
+        }
+        toast.error(result.error || 'Не удалось отменить заказ');
+        return;
+      }
+      
+      // Обновляем локальное состояние после успешного обновления на сервере
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, status: 'Отменен' } : order
+      ));
+      toast.success('Заказ отменён');
+    } catch (error) {
+      console.error('Ошибка при отмене заказа:', error);
+      toast.error('Ошибка соединения с сервером');
+    }
   };
 
   /**
    * Обновление статуса заказа
    */
-  const updateOrderStatus = (orderId: string, status: string) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status } : order
-    ));
+  const updateOrderStatus = async (orderId: string, status: string) => {
+    try {
+      const result = await updateOrderStatusRequest(orderId, status);
+      if (!result.success) {
+        const msg = (result.error || '').toString().toLowerCase();
+        // Мягкий оффлайн-режим: если сервер не знает о заказе, обновляем локально
+        if (msg.includes('не найден') || msg.includes('not found')) {
+          setOrders(prevOrders =>
+            prevOrders.map(order =>
+              order.id === orderId ? { ...order, status } : order
+            )
+          );
+          toast.info('Статус обновлён локально (на сервере заказ не найден)');
+          return;
+        }
+        toast.error(result.error || 'Не удалось обновить статус заказа');
+        return;
+      }
+
+      const updatedOrder = (result.data as { order?: Order } | undefined)?.order;
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
+            ? { ...order, ...(updatedOrder ?? { status }) }
+            : order
+        )
+      );
+    } catch (error) {
+      console.error('Ошибка обновления статуса заказа:', error);
+      toast.error('Не удалось связаться с сервером для обновления статуса');
+    }
   };
 
   /**
@@ -604,12 +568,27 @@ export default function App() {
 
   // Если пользователь не авторизован, показываем форму входа
   if (!user) {
-    return <AuthForm onLogin={handleLogin} />;
+    return <AuthForm onLogin={(user: User) => handleLogin(user)} />;
+  }
+
+  // Показываем индикатор загрузки, пока данные загружаются из БД
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg text-muted-foreground">Загрузка данных из базы данных...</p>
+        </div>
+      </div>
+    );
   }
 
   // Главный интерфейс приложения
   return (
     <div className="min-h-screen bg-background">
+      {/* Компонент для отображения toast уведомлений */}
+      <Toaster position="top-right" richColors />
+      
       {/* Шапка приложения с информацией о пользователе */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4">

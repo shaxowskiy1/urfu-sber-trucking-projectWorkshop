@@ -22,7 +22,7 @@ import { CommentModal } from './CommentModal';
 interface Order {
   id: string;
   shipperName: string;
-  managerName: string;
+  managerName?: string;
   origin: string;
   destination: string;
   originLatitude?: string;
@@ -169,15 +169,15 @@ export function CompanyOrdersModal({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Ожидает':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'border bg-red-100 text-red-800 border-red-200';
       case 'Назначен':
-        return 'bg-blue-100 text-blue-800';
+        return 'border bg-orange-100 text-orange-800 border-orange-200';
       case 'В пути':
-        return 'bg-green-100 text-green-800';
+        return 'border bg-green-100 text-green-800 border-green-200';
       case 'Доставлен':
-        return 'bg-gray-100 text-gray-800';
+        return 'border bg-cyan-100 text-cyan-800 border-cyan-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'border bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 

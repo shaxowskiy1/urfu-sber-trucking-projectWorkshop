@@ -15,12 +15,14 @@ import { OrderSuccessModal } from './OrderSuccessModal';
 import { ShipperOrdersModal } from './ShipperOrdersModal';
 import { Button } from './ui/button';
 import { ClipboardList } from 'lucide-react';
+import { Alert, AlertDescription } from './ui/alert';
+import { createOrderRequest } from '../services/orderApi';
 
 /**
  * Интерфейс пользователя системы
  */
 interface User {
-  email: string;                  // Email пользователя (устаревшее, заменено на ИНН)
+  email?: string;                 // Email пользователя (устаревшее, заменено на ИНН)
   name: string;                   // ФИО пользователя
   company: string;                // Название компании
   userType: 'shipper' | 'logistician'; // Тип пользователя
@@ -30,8 +32,9 @@ interface User {
  * Интерфейс данных заказа грузоотправителя
  */
 interface Order {
+  id: string;                     // Уникальный номер заказа (генерируется автоматически)
   shipperName: string;            // Название компании грузоотправителя
-  managerName: string;            // ФИО менеджера
+  managerName?: string;           // ФИО менеджера (опционально)
   origin: string;                 // Адрес отправления
   destination: string;            // Адрес назначения
   originLatitude?: string;        // Широта точки отправления
@@ -51,11 +54,13 @@ interface Order {
   length: string;                 // Длина груза
   width: string;                  // Ширина груза
   height: string;                 // Высота груза
+  vehicleCount?: number;          // Количество необходимого транспорта
 }
 
 interface OrderWithStatus extends Order {
   id: string;
   status: string;
+  assignedDriverId: string | null; // ID назначенного водителя
 }
 
 interface ShipperDashboardProps {
@@ -71,6 +76,8 @@ export function ShipperDashboard({ onAddOrder, currentUser, orders, onDeleteOrde
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
 
   /**
    * Обработчик отправки формы заказа
@@ -79,24 +86,48 @@ export function ShipperDashboard({ onAddOrder, currentUser, orders, onDeleteOrde
   const handleOrderSubmit = (order: Order) => {
     setPendingOrder(order);
     setIsConfirmationOpen(true);
+    setError(''); // Очищаем предыдущие ошибки
   };
 
   /**
    * Подтверждение создания заказа
-   * Создает заказ(ы) и показывает уведомление об успехе
+   * Отправляет данные на бэкенд, затем создает заказ(ы) и показывает уведомление об успехе
    */
-  const handleConfirmOrder = () => {
-    if (pendingOrder) {
+  const handleConfirmOrder = async () => {
+    if (!pendingOrder) return;
+
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const result = await createOrderRequest(pendingOrder);
+
+      if (!result.success) {
+        setError(result.error || 'Ошибка при создании заказа');
+        setIsLoading(false);
+        return;
+      }
+
+      // После успешного создания на бэкенде добавляем заказ в локальное состояние
       onAddOrder(pendingOrder);
       const vehicleCount = pendingOrder.vehicleCount || 1;
+      const createdCount = result.data && typeof result.data === 'object' && 'createdCount' in result.data
+        ? Number(result.data.createdCount) || vehicleCount
+        : vehicleCount;
       // Формируем сообщение о созданных заказах
-      const orderId = vehicleCount > 1 
-        ? `${vehicleCount} заказов`
-        : 'Заказ создан';
+      const orderId = createdCount > 1 
+        ? `${createdCount} заказов`
+        : (result.data && typeof result.data === 'object' && 'order' in result.data && (result.data as any).order?.id)
+          ? `Заказ № ${(result.data as any).order.id}`
+          : 'Заказ создан';
       setCreatedOrderId(orderId);
       setIsConfirmationOpen(false);
       setIsSuccessOpen(true);
       setPendingOrder(null);
+      setIsLoading(false);
+    } catch (err) {
+      setError('Ошибка соединения с сервером');
+      setIsLoading(false);
     }
   };
 
@@ -142,14 +173,30 @@ export function ShipperDashboard({ onAddOrder, currentUser, orders, onDeleteOrde
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           <OrderForm onSubmit={handleOrderSubmit} currentUser={currentUser} />
+          {isLoading && (
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              Отправка данных на сервер...
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <OrderConfirmationModal
         isOpen={isConfirmationOpen}
-        onClose={() => setIsConfirmationOpen(false)}
-        orderData={pendingOrder}
+        onClose={() => {
+          setIsConfirmationOpen(false);
+          setError('');
+        }}
+        orderData={pendingOrder ? {
+          ...pendingOrder,
+          vehicleCount: pendingOrder.vehicleCount ?? 1
+        } : null}
         onConfirm={handleConfirmOrder}
       />
 

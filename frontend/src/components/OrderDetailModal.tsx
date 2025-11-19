@@ -1,6 +1,6 @@
 /**
  * Модальное окно с детальной информацией о заказе
- * 
+ *
  * Предоставляет функционал:
  * - Просмотр всех деталей заказа
  * - Интеллектуальный подбор транспорта с оценкой соответствия
@@ -17,7 +17,10 @@ import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
-import { MapPin, Calendar, Package, Truck, User, Phone, Star, CheckCircle, Trash2, UserX } from 'lucide-react';
+import { MapPin, Calendar, Package, Truck, User, Phone, Star, CheckCircle, Trash2, UserX, CheckCircle2 } from 'lucide-react';
+import { fetchCalculatedDrivers, type CalculatedDriverItem } from '../services/calculateApi';
+import { assignCalculatedDriver } from '../services/assignmentApi';
+import { getOrderStatusStyle } from '../utils/orderStatusStyles';
 
 /**
  * Интерфейс заказа
@@ -25,7 +28,7 @@ import { MapPin, Calendar, Package, Truck, User, Phone, Star, CheckCircle, Trash
 interface Order {
   id: string;                     // Уникальный номер заказа
   shipperName: string;            // Название компании грузоотправителя
-  managerName: string;            // ФИО менеджера
+  managerName?: string;           // ФИО менеджера (опционально)
   origin: string;                 // Адрес отправления
   destination: string;            // Адрес назначения
   originLatitude?: string;        // Широта точки отправления
@@ -47,7 +50,7 @@ interface Order {
   width: string;                  // Ширина груза
   height: string;                 // Высота груза
   assignedDriverId: string | null; // ID назначенного водителя
-  externalOrderNumber?: string;   // Номер заказа на внешней площадке
+  externalOrderNumber?: string | null;   // Номер заказа на внешней площадке
 }
 
 /**
@@ -65,7 +68,7 @@ interface TransportSuggestion {
   trailerType: string;            // Тип прицепа
   capacity: string;               // Вместимость прицепа
   location: string;               // Текущее местоположение
-  estimatedArrival: string;       // Оценка времени прибытия
+  estimatedArrival: string;       // Оценка времен�� пр��бытия
   completedTrips: number;         // Количество завершенных поездок (не используется)
   matchScore: number;             // Оценка соответствия заказу (0-100)
   specialEquipment: string[];     // Специальное оборудование (не используется)
@@ -134,7 +137,7 @@ interface OrderDetailModalProps {
  * Генерация предложений по транспорту на основе реальных данных водителей и автопарка
  * Анализирует доступных водителей, их связи с транспортом и прицепами,
  * рассчитывает рейтинг соответствия требованиям заказа
- * 
+ *
  * @param order - Заказ для которого подбирается транспорт
  * @param drivers - Список всех водителей
  * @param fleetAssignments - Связи водитель-транспорт-прицеп
@@ -150,17 +153,17 @@ const getTransportSuggestions = (
   trailers: Trailer[]
 ): TransportSuggestion[] => {
   if (!order) return [];
-  
+
   const availableDrivers = drivers.filter(driver => driver.availability === 'Доступен');
   const matchingCombinations: TransportSuggestion[] = [];
-  
+
   availableDrivers.forEach(driver => {
     const assignment = fleetAssignments.find(a => a.driverId === driver.id);
     if (!assignment) return;
 
     const truck = trucks.find(t => t.id === assignment.truckId);
     const trailer = trailers.find(t => t.id === assignment.trailerId);
-    
+
     if (!truck || !trailer || truck.maintenanceStatus !== 'Исправен') return;
 
     const typeMatches = !order.trailerType || trailer.trailerType === order.trailerType;
@@ -168,32 +171,32 @@ const getTransportSuggestions = (
 
     // Расчет рейтинга соответствия (максимум 100)
     let matchScore = 70; // Базовый балл
-    
+
     if (trailer.trailerType === order.trailerType) matchScore += 20;
-    
+
     const isNearby = truck.currentLocation && order.origin && truck.currentLocation.includes(order.origin.split(',')[1]?.trim() || '');
     if (isNearby) matchScore += 10;
-    
+
     matchScore = Math.min(100, matchScore);
-    
+
     matchingCombinations.push({
-      id: assignment.id,
+      id: assignment.id || 'нет назначения',
       driverId: driver.id,
       driverName: driver.name,
-      driverRating: 5.0, // Фиксированный рейтинг
+      driverRating: 5.0,
       driverPhone: driver.phone,
-      truckModel: `${truck.make} ${truck.model}`,
-      truckYear: truck.year,
-      trailerType: trailer.trailerType,
-      capacity: trailer.volume,
-      location: truck.currentLocation,
-      estimatedArrival: isNearby ? '2-3 часа' : '4-6 часов',
-      completedTrips: 0, // Убрали подсчет поездок
-      matchScore,
+      truckModel: truck ? `${truck.make} ${truck.model}` : 'Не назначен',
+      truckYear: truck ? truck.year : 0,
+      trailerType: trailer ? trailer.trailerType : 'Не назначен',
+      capacity: trailer ? trailer.volume : '',
+      location: truck ? truck.currentLocation : 'Не назначен',
+      estimatedArrival: truck ? (isNearby ? '2-3 часа' : '4-6 часов') : 'Не определено',
+      completedTrips: 0,
+      matchScore: truck && trailer ? matchScore : 0,
       specialEquipment: []
-    });
+});
   });
-  
+
   return matchingCombinations.sort((a, b) => b.matchScore - a.matchScore);
 };
 
@@ -201,14 +204,14 @@ const getTransportSuggestions = (
  * Модальное окно детальной информации о заказе
  * Показывает полную информацию о заказе и предложения по транспорту
  */
-export function OrderDetailModal({ 
-  order, 
-  drivers, 
+export function OrderDetailModal({
+  order,
+  drivers,
   trucks,
   trailers,
   fleetAssignments,
-  isOpen, 
-  onClose, 
+  isOpen,
+  onClose,
   onUpdateStatus,
   onAssignDriverToOrder,
   onDeleteOrder
@@ -216,15 +219,21 @@ export function OrderDetailModal({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [unassignConfirmOpen, setUnassignConfirmOpen] = useState(false);
   const [showTransportSuggestions, setShowTransportSuggestions] = useState(false);
+  const [calcLoading, setCalcLoading] = useState(false);
+  const [calcError, setCalcError] = useState<string | null>(null);
+  const [calcData, setCalcData] = useState<CalculatedDriverItem[] | null>(null);
+  const [assignLoadingId, setAssignLoadingId] = useState<number | null>(null);
+  const [assignSuccessId, setAssignSuccessId] = useState<number | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   if (!order) return null;
 
   const transportSuggestions = getTransportSuggestions(order, drivers, fleetAssignments, trucks, trailers);
   const assignedDriver = order.assignedDriverId ? drivers.find(d => d.id === order.assignedDriverId) : null;
-  
+
   // Получаем информацию о назначенном транспорте
-  const assignedFleet = order.assignedDriverId 
-    ? fleetAssignments.find(fa => fa.driverId === order.assignedDriverId) 
+  const assignedFleet = order.assignedDriverId
+    ? fleetAssignments.find(fa => fa.driverId === order.assignedDriverId)
     : null;
   const assignedTruck = assignedFleet ? trucks.find(t => t.id === assignedFleet.truckId) : null;
 
@@ -239,8 +248,15 @@ export function OrderDetailModal({
   /**
    * Отменить назначение водителя
    */
-  const handleUnassignDriver = () => {
+  const handleUnassignDriver = async () => {
+    // Единственный запрос: меняем статус на "Ожидает" на основном бэкенде
+    await onUpdateStatus(order.id, 'Ожидает');
+    // Локально снимаем назначение
     onAssignDriverToOrder(order.id, null);
+    // Сброс локальных флагов
+    setAssignSuccessId(null);
+    setAssignLoadingId(null);
+    setAssignError(null);
     setUnassignConfirmOpen(false);
   };
 
@@ -254,16 +270,10 @@ export function OrderDetailModal({
   };
 
   /**
-   * Определить цвет бейджа статуса
+   * Отметить заказ как доставленный
    */
-  const getStatusColor = (status: string) => {
-    const colors = {
-      'Ожидает': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Назначен': 'bg-green-100 text-green-800 border-green-200',
-      'В пути': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Доставлен': 'bg-gray-100 text-gray-800 border-gray-200'
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200';
+  const handleCompleteOrder = () => {
+    onUpdateStatus(order.id, 'Доставлен');
   };
 
   /**
@@ -284,9 +294,48 @@ export function OrderDetailModal({
     return time ? `${formattedDate} в ${time}` : formattedDate;
   };
 
+  const formatIsoDateTime = (iso: string) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString('ru-RU');
+    } catch {
+      return iso;
+    }
+  };
+
+  const handleCalculate = async () => {
+    setShowTransportSuggestions(true);
+    setCalcLoading(true);
+    setCalcError(null);
+    setCalcData(null);
+    const result = await fetchCalculatedDrivers();
+    if (result.success) {
+      setCalcData(result.data);
+    } else {
+      setCalcError(result.error || 'Ошибка запроса');
+    }
+    setCalcLoading(false);
+  };
+
+  const handleAssignCalculated = async (candidateId: number) => {
+    if (!order) return;
+    setAssignLoadingId(candidateId);
+    setAssignError(null);
+    setAssignSuccessId(null);
+    const res = await assignCalculatedDriver({ orderId: order.id, candidateId });
+    if (res.success) {
+      setAssignSuccessId(candidateId);
+      // Сообщаем родителю о назначении, чтобы появился блок "Назначенный транспорт"
+      onAssignDriverToOrder(order.id, String(candidateId));
+    } else {
+      setAssignError(res.error || 'Ошибка назначения');
+    }
+    setAssignLoadingId(null);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[85vw] w-[85vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -304,24 +353,37 @@ export function OrderDetailModal({
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Информация о заказе</span>
-                  <Badge className={`border ${getStatusColor(order.status)}`}>
+                  <Badge
+                    className="border"
+                    variant="outline"
+                    style={getOrderStatusStyle(order.status)}
+                  >
                     {order.status}
                   </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">Грузоотправитель</div>
                     <div className="font-semibold">{order.shipperName}</div>
                   </div>
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">Менеджер</div>
+                    <div className="font-semibold">{order.managerName}</div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">Тип груза</div>
                     <div className="font-semibold">{order.cargoType}</div>
                   </div>
                   {order.externalOrderNumber && (
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground">ID зак. на др. площ.</div>
+                      <div className="text-sm font-medium text-muted-foreground">ID заказа на др. площадке</div>
                       <div className="font-semibold">{order.externalOrderNumber}</div>
                     </div>
                   )}
@@ -330,37 +392,37 @@ export function OrderDetailModal({
                 <Separator />
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <div>
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div className="flex-1">
+                      <div className="text-sm text-muted-foreground">Адрес отправителя</div>
                       <div className="font-medium">{order.origin}</div>
-                      <div className="text-sm text-muted-foreground">Место отправления</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <div>
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div className="flex-1">
+                      <div className="text-sm text-muted-foreground">Адрес назначения</div>
                       <div className="font-medium">{order.destination}</div>
-                      <div className="text-sm text-muted-foreground">Место назначения</div>
                     </div>
                   </div>
                 </div>
 
                 <Separator />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <div>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div className="flex-1">
+                      <div className="text-sm text-muted-foreground">Дата погрузки</div>
                       <div className="font-medium">{formatDateTime(order.pickupDate, order.pickupTime)}</div>
-                      <div className="text-sm text-muted-foreground">Погрузка</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <div>
+                  <div className="flex items-start gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div className="flex-1">
+                      <div className="text-sm text-muted-foreground">Дата выгрузки</div>
                       <div className="font-medium">{formatDateTime(order.deliveryDate, order.deliveryTime)}</div>
-                      <div className="text-sm text-muted-foreground">Доставка</div>
                     </div>
                   </div>
                 </div>
@@ -415,14 +477,14 @@ export function OrderDetailModal({
                 </div>
 
                 {/* Назначенный транспорт */}
-                {assignedDriver && (
+                {order.assignedDriverId && (
                   <>
                     <Separator />
                     <div>
                       <div className="text-sm font-medium text-muted-foreground mb-2">Назначенный транспорт</div>
                       <Card className="border-primary/50">
                         <CardContent className="pt-4">
-                          {assignedTruck ? (
+                          {assignedTruck && assignedDriver ? (
                             <div className="flex items-center justify-between">
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
@@ -455,8 +517,29 @@ export function OrderDetailModal({
                               </Button>
                             </div>
                           ) : (
-                            <div className="text-sm text-muted-foreground">
-                              Водитель назначен, но транспорт не привязан. Обратитесь к администратору.
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-primary" />
+                                  <div>
+                                    <div className="font-semibold">Водитель ID: {order.assignedDriverId}</div>
+                                    {!assignedDriver && (
+                                      <div className="text-sm text-muted-foreground">Детали водителя недоступны в списке</div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  Транспорт не найден для этого водителя. Возможно, связка не задана.
+                                </div>
+                              </div>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => setUnassignConfirmOpen(true)}
+                              >
+                                <UserX className="h-4 w-4 mr-2" />
+                                Отменить
+                              </Button>
                             </div>
                           )}
                         </CardContent>
@@ -465,9 +548,17 @@ export function OrderDetailModal({
                   </>
                 )}
 
-                {/* Кнопка удаления заказа */}
+                {/* Кнопки завершения и удаления заказа */}
                 <Separator />
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="default"
+                    onClick={handleCompleteOrder}
+                    disabled={order.status === 'Доставлен'}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Заказ доставлен
+                  </Button>
                   <Button
                     variant="destructive"
                     onClick={() => setDeleteConfirmOpen(true)}
@@ -486,15 +577,25 @@ export function OrderDetailModal({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Truck className="h-5 w-5" />
-                  Подбор транспорта
+                  Подбор водителя
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {!showTransportSuggestions ? (
+                {order.assignedDriverId ? (
+                  <div className="text-center py-10">
+                    <div className="flex items-center justify-center mb-4">
+                      <CheckCircle className="h-50 w-50 text-green-600" />
+                    </div>
+                    <div className="text-lg font-semibold">Водитель уже назначен</div>
+                    <div className="text-sm text-muted-foreground mt-2">
+                      Отмените назначение, чтобы выбрать другого водителя
+                    </div>
+                  </div>
+                ) : !showTransportSuggestions ? (
                   <div className="text-center py-8">
                     <Truck className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <Button 
-                      onClick={() => setShowTransportSuggestions(true)}
+                    <Button
+                      onClick={handleCalculate}
                       className="flex items-center gap-2"
                       size="lg"
                     >
@@ -502,112 +603,75 @@ export function OrderDetailModal({
                       Подобрать водителя
                     </Button>
                     <p className="text-sm text-muted-foreground mt-4">
-                      Нажмите, чтобы увидеть доступные варианты транспорта
+                      Запросит варианты с бэкенда и отобразит список
                     </p>
                   </div>
                 ) : (
                   <>
-                    {order.assignedDriverId ? (
+                    {calcLoading && (
                       <div className="text-center py-8 text-muted-foreground">
-                        <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-600" />
-                        <p className="font-semibold">Водитель уже назначен</p>
-                        <p className="text-sm mb-4">Отмените назначение, чтобы выбрать другого водителя</p>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setShowTransportSuggestions(false)}
-                        >
-                          Скрыть предложения
-                        </Button>
+                        Загрузка...
                       </div>
-                    ) : transportSuggestions.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="font-semibold">Нет доступных вариантов транспорта</p>
-                        <p className="text-sm mb-4">Попробуйте изменить параметры заказа или добавить новые автомобили</p>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setShowTransportSuggestions(false)}
-                        >
-                          Скрыть предложения
-                        </Button>
+                    )}
+                    {!calcLoading && calcError && (
+                      <div className="text-center py-8 text-red-600">
+                        Ошибка: {calcError}
+                        <div className="mt-4">
+                          <Button variant="outline" onClick={() => setShowTransportSuggestions(false)}>Скрыть</Button>
+                        </div>
                       </div>
-                    ) : (
+                    )}
+                    {!calcLoading && !calcError && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between mb-4">
-                          <h3 className="font-semibold">Предложения по транспорту ({transportSuggestions.length})</h3>
-                          <Button 
-                            variant="ghost" 
+                          <h3 className="font-semibold">Результаты подбора ({calcData?.length ?? 0})</h3>
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => setShowTransportSuggestions(false)}
                           >
                             Скрыть
                           </Button>
                         </div>
-                        {transportSuggestions.map((suggestion) => (
-                          <Card key={suggestion.id} className="border">
+                        {(calcData ?? []).map((item, index) => (
+                            <Card key={item.id ? `calc-${item.id}` : `calc-item-${index}`} className="border">
                             <CardContent className="pt-4">
-                              <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="bg-primary/10 p-2 rounded-full">
-                                    <User className="h-4 w-4 text-primary" />
-                                  </div>
-                                  <div>
-                                    <div className="font-semibold">{suggestion.driverName}</div>
-                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                                      {suggestion.driverRating}/5.0 ({suggestion.completedTrips} поездок)
-                                    </div>
-                                  </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                  <div className="text-sm text-muted-foreground">ID</div>
+                                  <div className="font-semibold">{item.id}</div>
                                 </div>
-                                <div className="text-right">
-                                  <div className={`text-lg font-bold ${getMatchScoreColor(suggestion.matchScore)}`}>
-                                    {suggestion.matchScore}%
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">соответствие</div>
+                                <div>
+                                  <div className="text-sm text-muted-foreground">Координаты отправления</div>
+                                  <div className="font-medium">{item.originLatitude}, {item.originLongitude}</div>
+                                </div>
+                                <div>
+                                  <div className="text-sm text-muted-foreground">Дата доставки</div>
+                                  <div className="font-medium">{formatIsoDateTime(item.deliveryDate)}</div>
                                 </div>
                               </div>
-
-                              <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                                <div>
-                                  <div className="text-muted-foreground">Автомобиль</div>
-                                  <div className="font-medium">{suggestion.truckModel} ({suggestion.truckYear})</div>
-                                </div>
-                                <div>
-                                  <div className="text-muted-foreground">Тип прицепа</div>
-                                  <div className="font-medium">{suggestion.trailerType}</div>
-                                </div>
-                                <div>
-                                  <div className="text-muted-foreground">Грузовместимость</div>
-                                  <div className="font-medium">{suggestion.capacity}</div>
-                                </div>
-                                <div>
-                                  <div className="text-muted-foreground">Время прибытия</div>
-                                  <div className="font-medium">{suggestion.estimatedArrival}</div>
-                                </div>
+                              <div className="mt-4 flex items-center gap-3">
+                                <Button
+                                  onClick={() => handleAssignCalculated(item.id)}
+                                  disabled={assignLoadingId === item.id}
+                                >
+                                  {assignLoadingId === item.id ? 'Назначение...' : 'Назначить водителя'}
+                                </Button>
+                                {assignSuccessId === item.id && (
+                                  <span className="text-green-600 text-sm">Назначено</span>
+                                )}
                               </div>
-
-                              <div className="flex items-center justify-between pt-2">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <MapPin className="h-3 w-3" />
-                                  {suggestion.location}
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Phone className="h-3 w-3" />
-                                  {suggestion.driverPhone}
-                                </div>
-                              </div>
-
-                              <Button 
-                                onClick={() => handleAssignTransport(suggestion.driverId)}
-                                className="w-full mt-4 flex items-center gap-2"
-                                variant={suggestion.matchScore >= 90 ? 'default' : 'outline'}
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                Назначить транспорт
-                              </Button>
+                              {assignError && (
+                                <div className="text-red-600 text-sm mt-2">{assignError}</div>
+                              )}
                             </CardContent>
                           </Card>
                         ))}
+                        {(calcData?.length ?? 0) === 0 && (
+                          <div className="text-center py-8 text-muted-foreground">
+                            Данные не найдены
+                          </div>
+                        )}
                       </div>
                     )}
                   </>

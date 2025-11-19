@@ -139,6 +139,11 @@ public class ApiController {
         return ResponseEntity.ok(Map.of("orders", orders));
     }
 
+    @PostMapping("/orders/{id}/status")
+    public ResponseEntity<?> getStatus() {
+        return ResponseEntity.ok("ok");
+    }
+
     @DeleteMapping("/orders/{id}")
     public ResponseEntity<?> deleteOrder(@PathVariable Long id) {
         try {

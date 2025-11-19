@@ -1,4 +1,4 @@
-package ru.urfu.testauth;
+package ru.urfu.testauth.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -17,6 +17,7 @@ import { Button } from './ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { Package, MapPin, Calendar, TruckIcon, Box, Trash2 } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
+import { getOrderStatusStyle } from '../utils/orderStatusStyles';
 
 /**
  * Интерфейс заказа грузоотправителя
@@ -24,7 +25,7 @@ import { ScrollArea } from './ui/scroll-area';
 interface Order {
   id: string;                     // Уникальный номер заказа
   shipperName: string;            // Название компании грузоотправителя
-  managerName: string;            // ФИО менеджера
+  managerName?: string;           // ФИО менеджера (опционально)
   origin: string;                 // Адрес отправления
   destination: string;            // Адрес назначения
   originLatitude?: string;        // Широта точки отправления
@@ -60,23 +61,9 @@ interface ShipperOrdersModalProps {
 }
 
 /**
- * Определяет вариант бейджа в зависимости от статуса заказа
+ * Определяет цвет бейджа в зависимости от статуса заказа
  */
-
-const getStatusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
-  switch (status.toLowerCase()) {
-    case 'назначен':
-      return 'default';
-    case 'ожидает':
-      return 'secondary';
-    case 'в пути':
-      return 'outline';
-    case 'доставлен':
-      return 'outline';
-    default:
-      return 'secondary';
-  }
-};
+const getStatusStyle = (status: string) => getOrderStatusStyle(status);
 
 const formatDateTime = (date: string, time?: string) => {
   const formattedDate = new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -139,7 +126,11 @@ export function ShipperOrdersModal({ isOpen, onClose, orders, onDeleteOrder }: S
                             {order.cargoType}
                           </p>
                         </div>
-                        <Badge variant={getStatusVariant(order.status)}>
+                        <Badge
+                          variant="outline"
+                          className="border"
+                          style={getStatusStyle(order.status)}
+                        >
                           {order.status}
                         </Badge>
                       </div>

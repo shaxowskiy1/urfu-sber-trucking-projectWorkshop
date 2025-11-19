@@ -27,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Textarea } from './ui/textarea';
 import { User, Truck as TruckIcon, Plus, Edit, X, Link as LinkIcon, Trash2, MessageSquare } from 'lucide-react';
+import { ApiStatusIndicator } from './ApiStatusIndicator';
 
 /**
  * Интерфейс водителя
@@ -98,6 +99,7 @@ interface FleetManagementProps {
   onUpdateDriver: (driverId: string, updates: Partial<Driver>) => void;    // Обновление данных водителя
   onUpdateTruck: (truckId: string, updates: Partial<Truck>) => void;       // Обновление данных тягача
   onUpdateTrailer: (trailerId: string, updates: Partial<Trailer>) => void; // Обновление данных прицепа
+  lastApiLoad?: { time: Date; added: number; duplicates: number }; // Информация о последней загрузке из API
 }
 
 /**
@@ -117,7 +119,8 @@ export function FleetManagement({
   onDeleteFleetAssignment,
   onUpdateDriver, 
   onUpdateTruck,
-  onUpdateTrailer
+  onUpdateTrailer,
+  lastApiLoad
 }: FleetManagementProps) {
   // Состояния видимости форм добавления
   const [showDriverForm, setShowDriverForm] = useState(false);
@@ -375,6 +378,15 @@ export function FleetManagement({
                 Добавить водителя
               </Button>
             </div>
+
+            {/* Индикатор последней загрузки из API */}
+            {lastApiLoad && (
+              <ApiStatusIndicator 
+                lastLoadTime={lastApiLoad.time}
+                loadedCount={lastApiLoad.added}
+                duplicateCount={lastApiLoad.duplicates}
+              />
+            )}
 
             <div className="rounded-md border">
               <Table>

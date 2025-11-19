@@ -1,17 +1,17 @@
-/**
- * Компонент формы авторизации и регистрации
- * 
- * Предоставляет интерфейс для входа в систему и регистрации новых пользователей.
- * Поддерживает два типа пользователей:
- * - Грузоотправители (создают и отслеживают заказы)
- * - Логисты (управляют заказами и автопарком)
- * 
- * Особенности:
- * - Идентификация по ИНН вместо email
- * - Переключение между формами входа и регистрации
- * - Выбор типа пользователя при регистрации
- * - Валидация обязательных полей
- */
+// /**
+//  * Компонент формы авторизации и регистрации
+//  *
+//  * Предоставляет интерфейс для входа в систему и регистрации новых пользователей.
+//  * Поддерживает два типа пользователей:
+//  * - Грузоотправители (создают и отслеживают заказы)
+//  * - Логисты (управляют заказами и автопарком)
+//  *
+//  * Особенности:
+//  * - Идентификация по ИНН вместо email
+//  * - Переключение между формами входа и регистрации
+//  * - Выбор типа пользователя при регистрации
+//  * - Валидация обязательных полей
+//  */
 
 import React, { useState } from 'react';
 import { Button } from './ui/button';
@@ -22,106 +22,175 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Truck, Package, Hash, Lock, Building } from 'lucide-react';
 
-/**
- * Интерфейс пользователя системы
- */
+// /**
+//  * Интерфейс пользователя системы
+//  */
+// interface User {
+//   inn: string;          // ИНН для идентификации
+//   name: string;         // ФИО пользователя
+//   company: string;      // Название компании
+//   userType: 'shipper' | 'logistician';  // Тип пользователя
+// }
+
+// /**
+//  * Свойства компонента авторизации
+//  */
+// interface AuthFormProps {
+//   onLogin: (user: User) => void;  // Функция вызываемая при успешном входе
+// }
+
+// export function AuthForm({ onLogin }: AuthFormProps) {
+//   const [isLogin, setIsLogin] = useState(true);  // Флаг режима входа (true) или регистрации (false)
+//   const [loginError, setLoginError] = useState(''); // Сообщение об ошибке входа
+
+//   // Состояние формы
+//   const [formData, setFormData] = useState({
+//     inn: '',          // ИНН компании/пользователя
+//     password: '',     // Пароль
+//     name: '',         // ФИО (только для регистрации)
+//     company: '',      // Название компании (только для регистрации)
+//     userType: 'shipper' as 'shipper' | 'logistician'  // Тип пользователя
+//   });
+
+//   // Тестовые учетные записи для демонстрации
+//   const testAccounts = [
+//     { inn: '7701234567', password: 'shipper123', name: 'Иван Иванов', company: 'ООО "МеталлСтрой"', userType: 'shipper' as const },
+//     { inn: '7709876543', password: 'logist123', name: 'Петр Петров', company: 'ООО "ЛогистикПро"', userType: 'logistician' as const },
+//     { inn: 'demo', password: 'demo', name: 'Демо пользователь', company: 'Демо компания', userType: 'shipper' as const }
+//   ];
+
+//   /**
+//    * Обработчик отправки формы
+//    * Выполняет базовую валидацию и авторизует пользователя
+//    */
+//   const handleSubmit = (e: React.FormEvent) => {
+//     e.preventDefault();
+//     setLoginError(''); // Очистка предыдущих ошибок
+
+//     if (!formData.inn || !formData.password) {
+//       setLoginError('Пожалуйста, заполните все обязательные поля');
+//       return;
+//     }
+
+//     if (!isLogin && !formData.company) {
+//       setLoginError('Пожалуйста, заполните все поля для регистрации');
+//       return;
+//     }
+
+//     // Создание объекта пользователя и авторизация
+//     if (isLogin) {
+//       // Проверка учетных данных для входа
+//       const account = testAccounts.find(
+//         acc => acc.inn === formData.inn && acc.password === formData.password
+//       );
+
+//       if (!account) {
+//         setLoginError('Неверный ИНН или пароль. Попробуйте: ИНН "demo", пароль "demo"');
+//         return;
+//       }
+
+//       const user: User = {
+//         inn: account.inn,
+//         name: account.name,
+//         company: account.company,
+//         userType: formData.userType
+//       };
+
+//       onLogin(user);
+//     } else {
+//       // Регистрация нового пользователя
+//       const user: User = {
+//         inn: formData.inn,
+//         name: formData.name || 'Пользователь',
+//         company: formData.company,
+//         userType: formData.userType
+//       };
+
+//       onLogin(user);
+//     }
+//   };
+
+//   /**
+//    * Сброс формы при переключении между входом и регистрацией
+//    */
+//   const resetForm = () => {
+//     setFormData({
+//       inn: '',
+//       password: '',
+//       name: '',
+//       company: '',
+//       userType: 'shipper'
+//     });
+//     setLoginError(''); // Очистка ошибок
+//   };
+
 interface User {
-  inn: string;          // ИНН для идентификации
-  name: string;         // ФИО пользователя
-  company: string;      // Название компании
-  userType: 'shipper' | 'logistician';  // Тип пользователя
+  inn: string;
+  name: string;
+  company: string;
+  userType: 'shipper' | 'logistician';
 }
 
-/**
- * Свойства компонента авторизации
- */
 interface AuthFormProps {
-  onLogin: (user: User) => void;  // Функция вызываемая при успешном входе
+  onLogin: (user: User) => void;
 }
 
 export function AuthForm({ onLogin }: AuthFormProps) {
-  const [isLogin, setIsLogin] = useState(true);  // Флаг режима входа (true) или регистрации (false)
-  const [loginError, setLoginError] = useState(''); // Сообщение об ошибке входа
-  
-  // Состояние формы
+  const [isLogin, setIsLogin] = useState(true);
+  const [loginError, setLoginError] = useState('');
   const [formData, setFormData] = useState({
-    inn: '',          // ИНН компании/пользователя
-    password: '',     // Пароль
-    name: '',         // ФИО (только для регистрации)
-    company: '',      // Название компании (только для регистрации)
-    userType: 'shipper' as 'shipper' | 'logistician'  // Тип пользователя
+    inn: '',
+    password: '',
+    company: '',
+    userType: 'shipper' as 'shipper' | 'logistician'
   });
-  
-  // Тестовые учетные записи для демонстрации
-  const testAccounts = [
-    { inn: '7701234567', password: 'shipper123', name: 'Иван Иванов', company: 'ООО "МеталлСтрой"', userType: 'shipper' as const },
-    { inn: '7709876543', password: 'logist123', name: 'Петр Петров', company: 'ООО "ЛогистикПро"', userType: 'logistician' as const },
-    { inn: 'demo', password: 'demo', name: 'Демо пользователь', company: 'Демо компания', userType: 'shipper' as const }
-  ];
 
-  /**
-   * Обработчик отправки формы
-   * Выполняет базовую валидацию и авторизует пользователя
-   */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError(''); // Очистка предыдущих ошибок
-    
+    setLoginError('');
+
     if (!formData.inn || !formData.password) {
       setLoginError('Пожалуйста, заполните все обязательные поля');
       return;
     }
-
     if (!isLogin && !formData.company) {
       setLoginError('Пожалуйста, заполните все поля для регистрации');
       return;
     }
 
-    // Создание объекта пользователя и авторизация
-    if (isLogin) {
-      // Проверка учетных данных для входа
-      const account = testAccounts.find(
-        acc => acc.inn === formData.inn && acc.password === formData.password
-      );
-      
-      if (!account) {
-        setLoginError('Неверный ИНН или пароль. Попробуйте: ИНН "demo", пароль "demo"');
+    const url = isLogin
+      ? 'http://localhost:8080/api/auth/login'
+      : 'http://localhost:8080/api/auth/register';
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formData)
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        setLoginError(result.message || 'Ошибка авторизации / регистрации');
         return;
       }
-      
-      const user: User = {
-        inn: account.inn,
-        name: account.name,
-        company: account.company,
-        userType: formData.userType
-      };
-      
-      onLogin(user);
-    } else {
-      // Регистрация нового пользователя
-      const user: User = {
-        inn: formData.inn,
-        name: formData.name || 'Пользователь',
-        company: formData.company,
-        userType: formData.userType
-      };
-      
-      onLogin(user);
+
+      // Возвращаем только нужные поля с безопасным значением имени
+      const { inn, company, userType, name } = result.user || result;
+      onLogin({ inn, company, userType, name: name || 'Пользователь' });
+    } catch (err) {
+      setLoginError('Ошибка соединения с сервером');
     }
   };
 
-  /**
-   * Сброс формы при переключении между входом и регистрацией
-   */
   const resetForm = () => {
     setFormData({
       inn: '',
       password: '',
-      name: '',
       company: '',
       userType: 'shipper'
     });
-    setLoginError(''); // Очистка ошибок
+    setLoginError('');
   };
 
   return (
@@ -137,7 +206,7 @@ export function AuthForm({ onLogin }: AuthFormProps) {
           </p>
         </div>
 
-        <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value) => {
+        <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value: string) => {
           setIsLogin(value === 'login');
           resetForm();
         }}>
@@ -193,9 +262,9 @@ export function AuthForm({ onLogin }: AuthFormProps) {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                 {/* <div className="space-y-2">
                     <Label htmlFor="login-usertype">Тип аккаунта</Label>
-                    <Select value={formData.userType} onValueChange={(value: 'shipper' | 'logistician') => 
+                    <Select value={formData.userType} onValueChange={(value: 'shipper' | 'logistician') =>
                       setFormData(prev => ({ ...prev, userType: value }))
                     }>
                       <SelectTrigger>
@@ -216,7 +285,7 @@ export function AuthForm({ onLogin }: AuthFormProps) {
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
 
                   <Button type="submit" className="w-full">
                     Войти
@@ -290,7 +359,7 @@ export function AuthForm({ onLogin }: AuthFormProps) {
 
                   <div className="space-y-2">
                     <Label htmlFor="register-usertype">Тип аккаунта</Label>
-                    <Select value={formData.userType} onValueChange={(value: 'shipper' | 'logistician') => 
+                    <Select value={formData.userType} onValueChange={(value: 'shipper' | 'logistician') =>
                       setFormData(prev => ({ ...prev, userType: value }))
                     }>
                       <SelectTrigger>

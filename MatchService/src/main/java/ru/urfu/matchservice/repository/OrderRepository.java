@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OrderRepository extends JpaRepository<OrderDTO, Integer> {
-    @Query("select new ru.urfu.matchservice.models.DriverLegInfo(" +
+    @Query("select DISTINCT new ru.urfu.matchservice.models.DriverLegInfo(" +
             "o.assignedDriverId, " +
             "o.destinationLatitude, " +
             "o.destinationLongitude, " +

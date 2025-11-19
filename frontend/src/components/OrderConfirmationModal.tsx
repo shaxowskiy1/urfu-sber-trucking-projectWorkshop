@@ -16,23 +16,24 @@ import { Package, MapPin, Calendar, Weight, Ruler, DollarSign } from 'lucide-rea
  * Интерфейс данных заказа для подтверждения
  */
 interface OrderData {
+  id: string;                     // Уникальный номер заказа
   shipperName: string;            // Название компании грузоотправителя
-  managerName: string;            // ФИО менеджера
+  managerName?: string;           // ФИО менеджера (опционально)
   origin: string;                 // Адрес отправления
   destination: string;            // Адрес назначения
   originLatitude?: string;        // Широта точки отправления
   originLongitude?: string;       // Долгота точки отправления
   destinationLatitude?: string;   // Широта точки назначения
   destinationLongitude?: string;  // Долгота точки назначения
-  trailerType: string;            // Тип прицепа
+  trailerType?: string;            // Тип прицепа (опционально)
   volume: string;                 // Объем груза
   weight: string;                 // Вес груза
   pickupDate: string;             // Дата погрузки
   pickupTime?: string;            // Время погрузки
   deliveryDate: string;           // Дата доставки
   deliveryTime?: string;          // Время доставки
-  transportationCost: number;     // Стоимость перевозки
-  cargoType: string;              // Тип груза
+  transportationCost?: number;     // Стоимость перевозки (опционально)
+  cargoType?: string;              // Тип груза (опционально)
   specialRequirements: string;    // Особые требования
   length: string;                 // Длина груза
   width: string;                  // Ширина груза
@@ -103,11 +104,11 @@ export function OrderConfirmationModal({
               </div>
               <div>
                 <span className="text-sm text-muted-foreground">Тип груза:</span>
-                <p className="font-medium">{orderData.cargoType}</p>
+                <p className="font-medium">{orderData.cargoType || '—'}</p>
               </div>
               <div>
                 <span className="text-sm text-muted-foreground">Тип прицепа:</span>
-                <Badge variant="secondary">{orderData.trailerType}</Badge>
+                <Badge variant="secondary">{orderData.trailerType || '—'}</Badge>
               </div>
             </CardContent>
           </Card>
@@ -213,7 +214,7 @@ export function OrderConfirmationModal({
             <CardContent className="space-y-3">
               <div>
                 <span className="text-sm text-muted-foreground">Стоимость грузоперевозки:</span>
-                <p className="font-medium">{orderData.transportationCost.toLocaleString('ru-RU')} ₽</p>
+                <p className="font-medium">{orderData.transportationCost && orderData.transportationCost > 0 ? orderData.transportationCost.toLocaleString('ru-RU') + ' ₽' : '—'}</p>
               </div>
               <div>
                 <span className="text-sm text-muted-foreground">Количество транспорта:</span>

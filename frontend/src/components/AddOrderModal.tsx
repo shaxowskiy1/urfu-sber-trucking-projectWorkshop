@@ -4,36 +4,39 @@
  * Позволяет логисту вручную создавать новые заказы через форму OrderForm
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { OrderForm } from './OrderForm';
+import { Alert, AlertDescription } from './ui/alert';
+import { createOrderRequest } from '../services/orderApi';
 
 /**
  * Интерфейс заказа для создания логистом
  */
 interface Order {
-  shipperName: string;           // Название компании грузоотправителя
-  managerName: string;            // ФИО менеджера
-  origin: string;                 // Адрес отправления
-  destination: string;            // Адрес назначения
-  originLatitude?: string;        // Широта точки отправления
-  originLongitude?: string;       // Долгота точки отправления
-  destinationLatitude?: string;   // Широта точки назначения
-  destinationLongitude?: string;  // Долгота точки назначения
-  trailerType: string;            // Тип прицепа
-  volume: string;                 // Объем груза
-  weight: string;                 // Вес груза
-  pickupDate: string;             // Дата погрузки
-  pickupTime?: string;            // Время погрузки (опционально)
-  deliveryDate: string;           // Дата доставки
-  deliveryTime?: string;          // Время доставки (опционально)
-  transportationCost: number;     // Стоимость перевозки
-  cargoType: string;              // Тип груза
-  specialRequirements: string;    // Особые требования
-  length: string;                 // Длина груза в метрах
-  width: string;                  // Ширина груза в метрах
-  height: string;                 // Высота груза в метрах
-  vehicleCount: number;           // Количество необходимого транспорта
+  shipperName: string;
+  managerName?: string;            // Опционально
+  origin: string;
+  destination: string;
+  originLatitude?: string;
+  originLongitude?: string;
+  destinationLatitude?: string;
+  destinationLongitude?: string;
+  trailerType?: string;            // Опционально
+  volume: string;
+  weight: string;
+  pickupDate: string;
+  pickupTime?: string;
+  deliveryDate: string;
+  deliveryTime?: string;
+  transportationCost?: number;     // Опционально
+  cargoType?: string;              // Опционально
+  specialRequirements: string;
+  length: string;
+  width: string;
+  height: string;
+  vehicleCount: number;
+  externalOrderNumber?: string;
 }
 
 /**
@@ -49,12 +52,34 @@ interface AddOrderModalProps {
  * Модальное окно для добавления нового заказа логистом
  */
 export function AddOrderModal({ isOpen, onClose, onAddOrder }: AddOrderModalProps) {
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+
   /**
    * Обработчик отправки формы заказа
+   * Отправляет данные на бэкенд перед вызовом onAddOrder
    */
-  const handleSubmit = (order: Order) => {
-    onAddOrder(order);
-    onClose();
+  const handleSubmit = async (order: Order) => {
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const result = await createOrderRequest(order);
+
+      if (!result.success) {
+        setError(result.error || 'Ошибка при создании заказа');
+        setIsLoading(false);
+        return;
+      }
+
+      // После успешного создания на бэкенде вызываем callback
+      onAddOrder(order);
+      onClose();
+      setIsLoading(false);
+    } catch (err) {
+      setError('Ошибка соединения с сервером');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -66,6 +91,11 @@ export function AddOrderModal({ isOpen, onClose, onAddOrder }: AddOrderModalProp
             Заполните детали заказа на перевозку. Все поля, отмеченные звездочкой (*), обязательны для заполнения.
           </DialogDescription>
         </DialogHeader>
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <div className="mt-6">
           <OrderForm 
             onSubmit={handleSubmit}
@@ -78,6 +108,11 @@ export function AddOrderModal({ isOpen, onClose, onAddOrder }: AddOrderModalProp
             isLogistician={true}
           />
         </div>
+        {isLoading && (
+          <div className="mt-4 text-center text-sm text-muted-foreground">
+            Отправка данных на сервер...
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
