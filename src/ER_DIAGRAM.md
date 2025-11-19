@@ -22,7 +22,7 @@
 ├──────────────────────────────────────────────┤          │
 │ id (PK)                                      │◄─────────┘
 │ shipperName                                  │
-│ managerName                                  │───┐
+│ managerName (опционально)                    │───┐
 │ origin                                       │   │
 │ destination                                  │   │ Связь по имени
 │ originLatitude                               │   │
