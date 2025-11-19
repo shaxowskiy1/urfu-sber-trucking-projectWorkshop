@@ -85,7 +85,7 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
     originLongitude: '',
     destinationLatitude: '',
     destinationLongitude: '',
-    trailerType: 'Самосвал', // Тип по умолчанию для металлопроката
+    trailerType: '', // Опционально, по умолчанию пусто
     volume: '',
     weight: '',
     pickupDate: '',
@@ -154,12 +154,12 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
    * Вычисление стоимости за одну машину
    */
   const costPerVehicle = () => {
-    const totalCost = parseFloat(formData.transportationCost) || 0;
+    const totalCost = parseFloat(formData.transportationCost);
     const vehicleCount = parseInt(formData.vehicleCount) || 1;
-    if (totalCost > 0 && vehicleCount > 0) {
+    if (!isNaN(totalCost) && totalCost > 0 && vehicleCount > 0) {
       return (totalCost / vehicleCount).toFixed(2);
     }
-    return '0';
+    return '—';
   };
 
   /**
@@ -181,12 +181,8 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
       return;
     }
     
-    // Проверка стоимости
+    // Стоимость теперь опциональна
     const totalCost = parseFloat(formData.transportationCost) || 0;
-    if (totalCost <= 0) {
-      alert('Стоимость грузоперевозки должна быть положительным числом');
-      return;
-    }
     
     // Проверка количества транспорта
     const vehicleCount = parseInt(formData.vehicleCount) || 1;
@@ -206,7 +202,7 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
       originLongitude: formData.originLongitude || undefined,
       destinationLatitude: formData.destinationLatitude || undefined,
       destinationLongitude: formData.destinationLongitude || undefined,
-      transportationCost: costPerUnit,
+      transportationCost: totalCost > 0 ? costPerUnit : 0,
       vehicleCount: parseInt(formData.vehicleCount) || 1,
       externalOrderNumber: formData.externalOrderNumber || undefined
     });
@@ -221,7 +217,7 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
       originLongitude: '',
       destinationLatitude: '',
       destinationLongitude: '',
-      trailerType: 'Самосвал',
+      trailerType: '',
       volume: '',
       weight: '',
       pickupDate: '',
@@ -275,7 +271,7 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="cargoType">Тип груза *</Label>
+          <Label htmlFor="cargoType">Тип груза</Label>
           <Select value={formData.cargoType} onValueChange={(value) => updateFormData('cargoType', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Выберите тип груза" />
@@ -381,7 +377,7 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="transportationCost">Стоимость грузоперевозки (руб.) *</Label>
+          <Label htmlFor="transportationCost">Стоимость грузоперевозки (руб.)</Label>
           <Input
             id="transportationCost"
             value={formData.transportationCost}
@@ -390,7 +386,7 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
             type="number"
             min="1"
             step="0.01"
-            required
+            // Опционально
           />
           <p className="text-xs text-muted-foreground">
             Общая стоимость за все {formData.vehicleCount} {parseInt(formData.vehicleCount) === 1 ? 'машину' : 'машины'}
@@ -405,7 +401,7 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
             className="bg-muted font-medium"
           />
           <p className="text-xs text-muted-foreground">
-            Автоматический расчет: {formData.transportationCost || '0'} руб. ÷ {formData.vehicleCount} = {costPerVehicle()} руб.
+            Автоматический расчет: {formData.transportationCost || '—'} руб. ÷ {formData.vehicleCount} = {costPerVehicle()} руб.
           </p>
         </div>
       </div>

@@ -14,28 +14,29 @@ import { createOrderRequest } from '../services/orderApi';
  * Интерфейс заказа для создания логистом
  */
 interface Order {
-  shipperName: string;           // Название компании грузоотправителя
-  managerName: string;            // ФИО менеджера
-  origin: string;                 // Адрес отправления
-  destination: string;            // Адрес назначения
-  originLatitude?: string;        // Широта точки отправления
-  originLongitude?: string;       // Долгота точки отправления
-  destinationLatitude?: string;   // Широта точки назначения
-  destinationLongitude?: string;  // Долгота точки назначения
-  trailerType: string;            // Тип прицепа
-  volume: string;                 // Объем груза
-  weight: string;                 // Вес груза
-  pickupDate: string;             // Дата погрузки
-  pickupTime?: string;            // Время погрузки (опционально)
-  deliveryDate: string;           // Дата доставки
-  deliveryTime?: string;          // Время доставки (опционально)
-  transportationCost: number;     // Стоимость перевозки
-  cargoType: string;              // Тип груза
-  specialRequirements: string;    // Особые требования
-  length: string;                 // Длина груза в метрах
-  width: string;                  // Ширина груза в метрах
-  height: string;                 // Высота груза в метрах
-  vehicleCount: number;           // Количество необходимого транспорта
+  shipperName: string;
+  managerName: string;
+  origin: string;
+  destination: string;
+  originLatitude?: string;
+  originLongitude?: string;
+  destinationLatitude?: string;
+  destinationLongitude?: string;
+  trailerType?: string;            // Опционально
+  volume: string;
+  weight: string;
+  pickupDate: string;
+  pickupTime?: string;
+  deliveryDate: string;
+  deliveryTime?: string;
+  transportationCost?: number;     // Опционально
+  cargoType?: string;              // Опционально
+  specialRequirements: string;
+  length: string;
+  width: string;
+  height: string;
+  vehicleCount: number;
+  externalOrderNumber?: string;
 }
 
 /**

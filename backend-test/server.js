@@ -99,7 +99,6 @@ async function handleOrderCreation(req, res) {
     'destination',
     'pickupDate',
     'deliveryDate',
-    'transportationCost',
     'vehicleCount'
   ];
 
@@ -112,13 +111,12 @@ async function handleOrderCreation(req, res) {
   }
 
   // Валидация типов данных
-  const cost = parseFloat(req.body.transportationCost);
+  const costRaw = req.body.transportationCost;
+  const costParsed = parseFloat(costRaw);
+  const cost = !costRaw ? 0 : (isNaN(costParsed) || costParsed < 0 ? 0 : costParsed);
   const vehicleCount = parseInt(req.body.vehicleCount);
 
-  if (isNaN(cost) || cost <= 0) {
-    console.log(`[ORDER CREATE] Ошибка валидации: некорректная стоимость`);
-    return res.status(400).json({ message: 'Стоимость должна быть положительным числом' });
-  }
+  // Стоимость теперь опциональна, если указана и <=0 или не число - ставим 0 без ошибки
 
   if (isNaN(vehicleCount) || vehicleCount < 1 || vehicleCount > 5) {
     console.log(`[ORDER CREATE] Ошибка валидации: некорректное количество транспорта`);
