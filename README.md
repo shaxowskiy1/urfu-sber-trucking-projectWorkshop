@@ -1,11 +1,147 @@
+# Система управления логистикой
 
-  # Logistics Management System
+Веб-приложение для управления грузоперевозками с панелями для логистов и грузоотправителей.
 
-  This is a code bundle for Logistics Management System. The original project is available at https://www.figma.com/design/y5TT1r4FRlyvYLR9HuygZX/Logistics-Management-System.
+## Технологии
 
-  ## Running the code
+- **Frontend**: React 18 + TypeScript + Vite
+- **Backend**: Node.js + Express + SQLite3
+- **UI**: Tailwind CSS + shadcn/ui компоненты
+- **Уведомления**: Sonner (toast notifications)
 
-  Run `npm i` to install the dependencies.
+## Основные возможности
 
-  Run `npm run dev` to start the development server.
-  
+### Для грузоотправителей:
+- Создание заказов на перевозку с полной информацией
+- Отслеживание статуса заказов
+- Просмотр истории заказов
+
+### Для логистов:
+- Управление всеми заказами в системе
+- Подбор и назначение водителей на заказы
+- Управление автопарком (водители, тягачи, прицепы)
+- Создание связок автопарка (водитель + тягач + прицеп)
+- Изменение статусов заказов
+- Отмена заказов
+
+### Функции системы:
+- Авторизация по ИНН
+- Сохранение данных в SQLite БД
+- Комментарии к заказам, компаниям и менеджерам
+- Редактирование адресов и дат заказов
+- Поддержка координат для адресов
+- Статусы заказов: Ожидает, Назначен, В пути, Доставлен, Отменен
+
+## Установка и запуск
+
+### 1. Установка зависимостей
+
+```bash
+# Установка зависимостей фронтенда
+npm install
+
+# Установка зависимостей бэкенда
+cd backend-test
+npm install
+cd ..
+```
+
+### 2. Запуск приложения
+
+**ВАЖНО**: Сначала запустите бэкенд, затем фронтенд!
+
+```bash
+# Терминал 1: Запуск бэкенда (порт 3001)
+cd backend-test
+npm start
+
+# Терминал 2: Запуск фронтенда (порт 3000)
+npm run dev
+```
+
+### 3. Заполнение БД тестовыми данными
+
+```bash
+cd backend-test
+node seed-data.js
+```
+
+Скрипт добавит:
+- 7 заказов
+- 7 водителей
+- 7 тягачей
+- 7 прицепов
+- 7 связок автопарка
+- Тестовых пользователей
+
+## Тестовые пользователи
+
+- **ИНН**: `demo`, **Пароль**: `demo` (Грузоотправитель)
+- **ИНН**: `7701234567`, **Пароль**: `shipper123` (Грузоотправитель)
+- **ИНН**: `7709876543`, **Пароль**: `logist123` (Логист)
+
+## Структура проекта
+
+```
+frontend/
+├── src/
+│   ├── components/       # React компоненты
+│   │   ├── ui/          # UI примитивы (shadcn/ui)
+│   │   └── ...          # Бизнес-компоненты
+│   ├── services/        # API клиенты
+│   ├── utils/           # Утилиты
+│   └── App.tsx          # Главный компонент
+├── backend-test/        # Mock бэкенд
+│   ├── server.js        # Express сервер
+│   ├── database.js      # SQLite БД и CRUD
+│   ├── seed-data.js     # Скрипт заполнения БД
+│   └── database.sqlite  # База данных (создается автоматически)
+└── README.md
+```
+
+## API Endpoints
+
+Бэкенд доступен на `http://localhost:3001/api`
+
+- `POST /api/auth/login` - Авторизация
+- `POST /api/auth/register` - Регистрация
+- `GET /api/orders` - Получить все заказы
+- `POST /api/orders` - Создать заказ
+- `PATCH /api/orders/:id/status` - Обновить статус заказа
+- `GET /api/drivers` - Получить всех водителей
+- `POST /api/drivers` - Добавить водителя
+- `GET /api/trucks` - Получить все тягачи
+- `GET /api/trailers` - Получить все прицепы
+- `GET /api/fleet-assignments` - Получить связки автопарка
+
+Полная документация API в `backend-test/readme.md`
+
+## Разработка
+
+```bash
+# Запуск в режиме разработки
+npm run dev
+
+# Проверка типов TypeScript
+npm run build
+
+# Просмотр БД
+cd backend-test
+sqlite3 database.sqlite
+SELECT * FROM orders;
+.quit
+```
+
+## Дополнительная документация
+
+- `PROJECT_STRUCTURE.txt` - Детальная структура проекта
+- `src/API_EXAMPLES.md` - Примеры API запросов
+- `src/DATABASE_SCHEMA.md` - Схема базы данных
+- `src/ER_DIAGRAM.md` - ER-диаграмма
+- `src/COMMENTS_LOGIC.md` - Логика работы с комментариями
+
+## Лицензия
+
+Проект основан на дизайне из Figma: https://www.figma.com/design/y5TT1r4FRlyvYLR9HuygZX/Logistics-Management-System
+
+Используются компоненты [shadcn/ui](https://ui.shadcn.com/) под MIT лицензией.
