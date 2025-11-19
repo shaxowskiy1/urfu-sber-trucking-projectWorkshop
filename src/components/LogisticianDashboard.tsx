@@ -25,7 +25,7 @@ import { CompanyOrdersModal } from './CompanyOrdersModal';
 interface Order {
   id: string;                     // Уникальный номер заказа
   shipperName: string;            // Название компании грузоотправителя
-  managerName: string;            // ФИО менеджера
+  managerName?: string;           // ФИО менеджера (опционально)
   origin: string;                 // Адрес отправления
   destination: string;            // Адрес назначения
   originLatitude?: string;        // Широта точки отправления

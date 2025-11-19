@@ -22,7 +22,7 @@ import { CommentModal } from './CommentModal';
 interface Order {
   id: string;
   shipperName: string;
-  managerName: string;
+  managerName?: string;
   origin: string;
   destination: string;
   originLatitude?: string;

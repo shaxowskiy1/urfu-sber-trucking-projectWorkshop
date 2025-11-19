@@ -40,7 +40,7 @@ interface User {
  */
 interface OrderData {
   shipperName: string;
-  managerName: string;
+  managerName?: string;           // Опционально
   origin: string;
   destination: string;
   originLatitude?: string;
@@ -169,8 +169,8 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Проверка обязательных полей
-    if (!formData.shipperName || !formData.managerName || !formData.origin || !formData.destination) {
+    // Проверка обязательных полей (managerName теперь опционален)
+    if (!formData.shipperName || !formData.origin || !formData.destination) {
       alert('Пожалуйста, заполните все обязательные поля');
       return;
     }
@@ -260,13 +260,12 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="managerName">Имя менеджера *</Label>
+          <Label htmlFor="managerName">Имя менеджера</Label>
           <Input
             id="managerName"
             value={formData.managerName}
             onChange={(e) => updateFormData('managerName', e.target.value)}
-            placeholder="Введите имя менеджера"
-            required
+            placeholder="Введите ФИО менеджера (необязательно)"
           />
         </div>
 

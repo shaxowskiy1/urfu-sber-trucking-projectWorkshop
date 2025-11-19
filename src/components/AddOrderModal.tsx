@@ -15,7 +15,7 @@ import { createOrderRequest } from '../services/orderApi';
  */
 interface Order {
   shipperName: string;
-  managerName: string;
+  managerName?: string;            // Опционально
   origin: string;
   destination: string;
   originLatitude?: string;

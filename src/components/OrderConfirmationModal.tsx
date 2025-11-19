@@ -16,8 +16,9 @@ import { Package, MapPin, Calendar, Weight, Ruler, DollarSign } from 'lucide-rea
  * Интерфейс данных заказа для подтверждения
  */
 interface OrderData {
+  id: string;                     // Уникальный номер заказа
   shipperName: string;            // Название компании грузоотправителя
-  managerName: string;            // ФИО менеджера
+  managerName?: string;           // ФИО менеджера (опционально)
   origin: string;                 // Адрес отправления
   destination: string;            // Адрес назначения
   originLatitude?: string;        // Широта точки отправления

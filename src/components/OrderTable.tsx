@@ -26,7 +26,7 @@ import { getOrderStatusStyle } from '../utils/orderStatusStyles';
 interface Order {
   id: string;
   shipperName: string;
-  managerName: string;
+  managerName?: string;
   origin: string;
   destination: string;
   originLatitude?: string;
@@ -260,7 +260,11 @@ export function OrderTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
+            {[...orders].sort((a, b) => {
+              const idA = parseInt(a.id);
+              const idB = parseInt(b.id);
+              return idB - idA; // Сортировка от большего к меньшему (новые заказы вверху)
+            }).map((order) => (
               <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50">
                 <TableCell className="font-medium">{order.id}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
@@ -277,15 +281,20 @@ export function OrderTable({
                     >
                       {order.shipperName}
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onManagerClick(order.managerName);
-                      }}
-                      className="text-sm text-muted-foreground hover:text-blue-600 hover:underline text-left block"
-                    >
-                      {order.managerName}
-                    </button>
+                    {order.managerName && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onManagerClick(order.managerName!);
+                        }}
+                        className="text-sm text-muted-foreground hover:text-blue-600 hover:underline text-left block"
+                      >
+                        {order.managerName}
+                      </button>
+                    )}
+                    {!order.managerName && (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>

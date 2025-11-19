@@ -13,7 +13,7 @@
  * - Полностью на русском языке с российскими стандартами
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { ShipperDashboard } from './components/ShipperDashboard';
 import { LogisticianDashboard } from './components/LogisticianDashboard';
@@ -23,6 +23,7 @@ import { Truck, Package, LogOut, User } from 'lucide-react';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { updateOrderStatusRequest } from './services/orderApi';
+import { fetchAllOrders, fetchAllDrivers, fetchAllTrucks, fetchAllTrailers, fetchAllFleetAssignments } from './services/dataApi';
 
 /**
  * Интерфейс пользователя системы
@@ -35,201 +36,16 @@ interface User {
 }
 
 // ========================================
-// ТЕСТОВЫЕ ДАННЫЕ
+// ИНТЕРФЕЙСЫ
 // ========================================
-const initialOrders = [
-  {
-    id: '1',
-    shipperName: 'ООО "Металл-Строй"',
-    managerName: 'Сергей Петров',
-    origin: 'ул. Тверская, 25, Москва',
-    originLatitude: '55.7640', 
-    originLongitude: '37.6050',
-    destination: 'ул. Марата, 14, Санкт-Петербург',
-    destinationLatitude: '59.9310', 
-    destinationLongitude: '30.3610',
-    trailerType: 'Бортовой',
-    volume: '96 м³',
-    weight: '20,000 кг',
-    pickupDate: '2025-10-25',
-    pickupTime: '09:00',
-    deliveryDate: '2025-10-25',
-    deliveryTime: '21:00',
-    transportationCost: 45000,
-    status: 'Ожидает',
-    cargoType: 'Металлопрокат',
-    specialRequirements: 'Требуется кран для погрузки',
-    length: '12',
-    width: '2.4',
-    height: '3.2',
-    assignedDriverId: null,
-    externalOrderNumber: 'ATI-2024-001'
-  },
-  {
-    id: '2',
-    shipperName: 'ЗАО "Продукты Север"',
-    managerName: 'Анна Смирнова',
-    origin: 'ул. Красный проспект, 101, Новосибирск',
-    originLatitude: '55.0415', 
-    originLongitude: '82.9346',
-    destination: 'пер. Базовый, 3, Екатеринбург',
-    destinationLatitude: '56.8389', 
-    destinationLongitude: '60.6057',
-    trailerType: 'Рефрижератор',
-    volume: '82 м³',
-    weight: '18,000 кг',
-    pickupDate: '2025-10-18',
-    pickupTime: '10:00',
-    deliveryDate: '2025-10-24',
-    deliveryTime: '18:00',
-    transportationCost: 42000,
-    status: 'Назначен',
-    cargoType: 'Скоропортящиеся продукты',
-    specialRequirements: 'Температурный режим: +2 до +4°C',
-    length: '13.6',
-    width: '2.5',
-    height: '2.4',
-    assignedDriverId: 'ВОД-001',
-    externalOrderNumber: 'CARGO-2024-789'
-  },
-  {
-    id: '3',
-    shipperName: 'ИП "Металлолом-Сбыт"',
-    managerName: 'Михаил Козлов',
-    origin: 'ул. Труда, 7, Челябинск',
-    originLatitude: '55.1600', 
-    originLongitude: '61.4000',
-    destination: 'ул. Баумана, 10, Казань',
-    destinationLatitude: '55.7900', 
-    destinationLongitude: '49.1210',
-    trailerType: 'Контейнеровоз',
-    volume: '76 м³',
-    weight: '22,000 кг',
-    pickupDate: '2025-10-30',
-    pickupTime: '06:00',
-    deliveryDate: '2025-11-01',
-    deliveryTime: '10:00',
-    transportationCost: 38000,
-    status: 'Ожидает',
-    cargoType: 'Металлолом',
-    specialRequirements: 'Необходима документация по ГОСТ',
-    length: '12',
-    width: '2.4',
-    height: '2.65',
-    assignedDriverId: null
-  },
-  {
-    id: '4', 
-    shipperName: 'ТранспортСервис', 
-    managerName: 'Иван Петров', 
-    origin: 'ул. Ленина, 10, Челябинск', 
-    destination: 'ул. Озёрная, 7, Миасское', 
-    originLatitude: '55.1600', 
-    originLongitude: '61.4030', 
-    destinationLatitude: '55.0450', 
-    destinationLongitude: '60.9700', 
-    trailerType: 'Тент', 
-    volume: '85 м³', 
-    weight: '9,000 кг', 
-    pickupDate: '2025-10-25', 
-    pickupTime: '06:00', 
-    deliveryDate: '2025-10-25', 
-    deliveryTime: '17:00', 
-    transportationCost: 48000, 
-    status: 'Ожидает', 
-    cargoType: 'Мебель', 
-    specialRequirements: '', 
-    length: '13.6', 
-    width: '2.45', 
-    height: '2.7', 
-    assignedDriverId: null, 
-    externalOrderNumber: null}, 
-  {
-    id: '5', 
-    shipperName: 'ЛогистикПро', 
-    managerName: 'Ольга Смирнова', 
-    origin: 'ул. Кирова, 15, Челябинск', 
-    destination: 'ул. Советская, 18, Чебаркуль', 
-    originLatitude: '55.1640', 
-    originLongitude: '61.3950', 
-    destinationLatitude: '55.0560', 
-    destinationLongitude: '61.0600', 
-    trailerType: 'Рефрижератор', 
-    volume: '80 м³', 
-    weight: '10,000 кг', 
-    pickupDate: '2025-10-26', 
-    pickupTime: '18:00', 
-    deliveryDate: '2025-10-27', 
-    deliveryTime: '10:00', 
-    transportationCost: 50000, 
-    status: 'Ожидает', 
-    cargoType: 'Продукты питания', 
-    specialRequirements: 'Температурный режим: -22 до -18°C', 
-    length: '13.6', 
-    width: '2.45', 
-    height: '2.7', 
-    assignedDriverId: null, 
-    externalOrderNumber: null
-  },  
-  {
-    id: '6', 
-    shipperName: 'ФастКарго', 
-    managerName: 'Алексей Кузнецов', 
-    origin: 'просп. Ленина, 50, Челябинск', 
-    destination: 'ул. Центральная, 5, Красногорский', 
-    originLatitude: '55.1610', 
-    originLongitude: '61.4100', 
-    destinationLatitude: '55.1460', 
-    destinationLongitude: '60.9960', 
-    trailerType: 'Платформа', 
-    volume: '90 м³', 
-    weight: '11,000 кг', 
-    pickupDate: '2025-10-30', 
-    pickupTime: '07:00', 
-    deliveryDate: '2025-10-30', 
-    deliveryTime: '21:00', 
-    transportationCost: 55000, 
-    status: 'Ожидает', 
-    cargoType: 'Строительный материал', 
-    specialRequirements: '', 
-    length: '13.6', 
-    width: '2.45', 
-    height: '2.7', 
-    assignedDriverId: null, 
-    externalOrderNumber: null}, 
-  {
-    id: '7', 
-    shipperName: 'ЭкспрессТранс', 
-    managerName: 'Екатерина Волкова', 
-    origin: 'ул. Мира, 21, Челябинск', 
-    destination: 'ул. Свободы, 10, Челябинск', 
-    originLatitude: '55.1625', 
-    originLongitude: '61.4121', 
-    destinationLatitude: '55.1480', 
-    destinationLongitude: '61.4000', 
-    trailerType: 'Рефрижератор', 
-    volume: '80 м³', 
-    weight: '10,000 кг', 
-    pickupDate: '2025-10-26', 
-    pickupTime: '19:00', 
-    deliveryDate: '2025-10-26', 
-    deliveryTime: '22:00', 
-    transportationCost: 10000, 
-    status: 'Ожидает', 
-    cargoType: 'Продукты питания', 
-    specialRequirements: '', 
-    length: '13.6', 
-    width: '2.45', 
-    height: '2.7', 
-    assignedDriverId: null, 
-    externalOrderNumber: null
-  }
-];
 
+/**
+ * Интерфейс заказа на перевозку
+ */
 interface Order {
   id: string;
   shipperName: string;
-  managerName: string;
+  managerName?: string;           // Опционально
   origin: string;
   destination: string;
   originLatitude?: string;
@@ -254,6 +70,9 @@ interface Order {
   externalOrderNumber?: string | null;
 }
 
+/**
+ * Интерфейс водителя
+ */
 interface Driver {
   id: string;
   name: string;
@@ -321,267 +140,6 @@ interface ManagerInfo {
 }
 
 /**
- * Тестовые данные для водителей
- */
-const initialDrivers: Driver[] = [
-  {
-    id: 'ВОД-001',
-    name: 'Иван Петров',
-    phone: '+7 (495) 123-45-67',
-    licenseNumber: 'ВУ-77-123456',
-    availability: 'Доступен',
-    comment: ''
-  },
-  {
-    id: 'ВОД-002',
-    name: 'Алексей Сидоров',
-    phone: '+7 (812) 987-65-43',
-    licenseNumber: 'ВУ-78-789012',
-    availability: 'В рейсе',
-    comment: ''
-  },
-  {
-    id: 'ВОД-003',
-    name: 'Иван Иванов',
-    phone: '+7 (900) 111-22-22',
-    licenseNumber: "ВУ-79-123246",
-    availability: "Доступен",
-    comment: ''
-  },
-    {id: 'ВОД-004',
-     name: 'Петр Петров',
-     phone: '+7 (900) 333-44-44',
-     licenseNumber: 'ВУ-80-643212',
-     availability: 'Не работает',
-     comment: ''
-    },
-    {id: 'ВОД-005',
-     name: "Алексей Смирнов",
-     phone: "+7 (900) 555-66-66",
-     licenseNumber: "ВУ-81-958672",
-     availability: "Доступен",
-     comment: ''
-    },
-    {id:'ВОД-006',
-     name: 'Сергей Кузнецов',
-     phone: '+7 (900) 777-88-88',
-     licenseNumber: "ВУ-82-954322",
-     availability: "Не работает",
-     comment: ''
-    },
-    {id: 'ВОД-007',
-     name: 'Михаил Орлов',
-     phone: '+7 (900) 999-00-00',
-     licenseNumber: 'ВУ-83-713222',
-     availability: 'Доступен',
-     comment: ''
-  }
-];
-
-const initialTrucks: Truck[] = [
-  {
-    id: 'АВТ-001',
-    make: 'КАМАЗ',
-    model: '5490',
-    year: 2022,
-    licensePlate: 'М123АВ77',
-    vinNumber: 'XTC5490NEO123456',
-    maintenanceStatus: 'Исправен',
-    currentLocation: 'Москва, Россия',
-    comment: ''
-  },
-  {
-    id: 'АВТ-002',
-    make: 'МАЗ',
-    model: '6312',
-    year: 2021,
-    licensePlate: 'В456СД78',
-    vinNumber: 'Y3MAZ6312CJ789012',
-    maintenanceStatus: 'Исправен',
-    currentLocation: 'Санкт-Петербург, Россия',
-    comment: ''
-  },
-  {
-    id: 'АВТ-003', 
-    make: 'Volvo', 
-    model: 'FH16', 
-    year: 2020, 
-    licensePlate: 'C123AB 74', 
-    vinNumber: 'VIN00001', 
-    maintenanceStatus: 'Исправен', 
-    currentLocation: 'ул. Ленина, 10, Челябинск', 
-    comment: ''
-  }, 
-  {
-    id: 'АВТ-004', 
-    make: 'Scania', 
-    model: 'R580', 
-    year: 2019, 
-    licensePlate: 'C456CD 74', 
-    vinNumber: 'VIN00002', 
-    maintenanceStatus: 'Исправен', 
-    currentLocation: 'ул. Кирова, 15, Челябинск', 
-    comment: ''
-  }, 
-  {
-    id: 'АВТ-005', 
-    make: 'MAN', 
-    model: 'TGX', 
-    year: 2018, 
-    licensePlate: 'C789EF 74', 
-    vinNumber: 'VIN00003', 
-    maintenanceStatus: 'Исправен', 
-    currentLocation: 'просп. Ленина, 50, Челябинск', 
-    comment: ''
-  }, 
-  {
-    id: 'АВТ-006', 
-    make: 'Mercedes', 
-    model: 'Actros', 
-    year: 2021, 
-    licensePlate: 'C101GH 74', 
-    vinNumber: 'VIN00004', 
-    maintenanceStatus: 'Исправен', 
-    currentLocation: 'ул. Труда, 5, Челябинск', 
-    comment: ''
-  }, 
-  {
-    id: 'АВТ-007', 
-    make: 'DAF', 
-    model: 'XF', 
-    year: 2017, 
-    licensePlate: 'C202IJ 74', 
-    vinNumber: 'VIN00005', 
-    maintenanceStatus: 'Исправен', 
-    currentLocation: 'ул. Свободы, 20, Челябинск', 
-    comment: ''
-  }
-];
-
-const initialTrailers: Trailer[] = [
-  {
-    id: 'ПРЦ-001',
-    licensePlate: 'АМ123477',
-    trailerType: 'Бортовой',
-    length: '13.6',
-    width: '2.45',
-    height: '2.9',
-    volume: '96.7 м³',
-    comment: ''
-  },
-  {
-    id: 'ПРЦ-002',
-    licensePlate: 'СК456778',
-    trailerType: 'Контейнеровоз',
-    length: '12.2',
-    width: '2.45',
-    height: '2.7',
-    volume: '80.7 м³',
-    comment: ''
-  },
-  {
-    id: 'ПРЦ-003', 
-    licensePlate: 'AB1111', 
-    trailerType: 'Тент', 
-    length: '13.6', 
-    width: '2.45', 
-    height: '2.7', 
-    volume: '85 м³', 
-    comment: ''
-  }, 
-  {
-    id: 'ПРЦ-004', 
-    licensePlate: 'ВС2222', 
-    trailerType: 'Рефрижератор', 
-    length: '13.6', 
-    width: '2.45', 
-    height: '2.7', 
-    volume: '80 м³', 
-    comment: ''
-  }, 
-  {
-    id: 'ПРЦ-005', 
-    licensePlate: 'СД3333', 
-    trailerType: 'Тент', 
-    length: '13.6', 
-    width: '2.45', 
-    height: '2.7', 
-    volume: '85 м³', 
-    comment: ''}, 
-
-  {
-    id: 'ПРЦ-006', 
-    licensePlate: 'ДЕ4444', 
-    trailerType: 'Платформа', 
-    length: '13.6', 
-    width: '2.45', 
-    height: '2.7', 
-    volume: '90 м³', 
-    comment: ''
-  }, 
-  {
-    id: 'ПРЦ-007', 
-    licensePlate: 'ЕФ5555', 
-    trailerType: 'Рефрижератор', 
-    length: '13.6', 
-    width: '2.45', 
-    height: '2.7', 
-    volume: '80 м³', 
-    comment: ''}
-];
-
-const initialFleetAssignments: FleetAssignment[] = [
-  {
-    id: 'СВЗ-001',
-    driverId: 'ВОД-001',
-    truckId: 'АВТ-001',
-    trailerId: 'ПРЦ-001',
-    assignedDate: '2024-01-15'
-  },
-  {
-    id: 'СВЗ-002',
-    driverId: 'ВОД-002',
-    truckId: 'АВТ-002',
-    trailerId: 'ПРЦ-002',
-    assignedDate: '2024-02-10'
-  },
-  {
-    id: 'СВЗ-003', 
-    driverId: 'ВОД-003', 
-    truckId: 'АВТ-003', 
-    trailerId: 'ПРЦ-003', 
-    assignedDate: '2024-05-27'
-  }, 
-  {
-    id: 'СВЗ-004', 
-    driverId: 'ВОД-004', 
-    truckId: 'АВТ-004', 
-    trailerId: 'ПРЦ-004', 
-    assignedDate: '2024-07-12'
-  }, 
-  {
-    id: 'СВЗ-005', 
-    driverId: 'ВОД-005', 
-    truckId: 'АВТ-005', 
-    trailerId: 'ПРЦ-005', 
-    assignedDate: '2024-09-03'
-  }, 
-  {
-    id: 'СВЗ-006', 
-    driverId: 'ВОД-006', 
-    truckId: 'АВТ-006', 
-    trailerId: 'ПРЦ-006', 
-    assignedDate: '2024-10-24'}, 
-  {
-    id: 'СВЗ-007', 
-    driverId: 'ВОД-007', 
-    truckId: 'АВТ-007', 
-    trailerId: 'ПРЦ-007', 
-    assignedDate: '2024-12-05'
-  }
-];
-
-/**
  * Главный компонент приложения
  * Управляет состоянием всего приложения и маршрутизацией между интерфейсами
  */
@@ -591,11 +149,12 @@ export default function App() {
   // ========================================
   
   const [user, setUser] = useState<User | null>(null);  // Текущий авторизованный пользователь
-  const [orders, setOrders] = useState<Order[]>(initialOrders);  // Все заказы в системе
-  const [drivers, setDrivers] = useState<Driver[]>(initialDrivers);  // Все водители
-  const [trucks, setTrucks] = useState<Truck[]>(initialTrucks);  // Все тягачи
-  const [trailers, setTrailers] = useState<Trailer[]>(initialTrailers);  // Все прицепы
-  const [fleetAssignments, setFleetAssignments] = useState<FleetAssignment[]>(initialFleetAssignments);  // Назначения автопарка
+  const [orders, setOrders] = useState<Order[]>([]);  // Все заказы в системе
+  const [drivers, setDrivers] = useState<Driver[]>([]);  // Все водители
+  const [trucks, setTrucks] = useState<Truck[]>([]);  // Все тягачи
+  const [trailers, setTrailers] = useState<Trailer[]>([]);  // Все прицепы
+  const [fleetAssignments, setFleetAssignments] = useState<FleetAssignment[]>([]);  // Назначения автопарка
+  const [isLoadingData, setIsLoadingData] = useState(true);  // Индикатор загрузки данных
   
   // Комментарии к компаниям, менеджерам и заказам
   const [comments, setComments] = useState<Comments>({
@@ -610,6 +169,59 @@ export default function App() {
     'Анна Смирнова': { phone: '+7 (495) 987-65-43', email: 'anna.smirnova@produktysever.ru' },
     'Михаил Козлов': { phone: '+7 (495) 555-12-34', email: 'mikhail.kozlov@metallolom.ru' }
   });
+
+  // ========================================
+  // ЗАГРУЗКА ДАННЫХ ИЗ БД
+  // ========================================
+
+  /**
+   * Загрузка всех данных из базы данных при монтировании компонента
+   */
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoadingData(true);
+        
+        // Параллельная загрузка всех данных
+        const [
+          ordersData,
+          driversData,
+          trucksData,
+          trailersData,
+          fleetAssignmentsData
+        ] = await Promise.all([
+          fetchAllOrders(),
+          fetchAllDrivers(),
+          fetchAllTrucks(),
+          fetchAllTrailers(),
+          fetchAllFleetAssignments()
+        ]);
+
+        // Обновление состояния
+        setOrders(ordersData);
+        setDrivers(driversData);
+        setTrucks(trucksData);
+        setTrailers(trailersData);
+        setFleetAssignments(fleetAssignmentsData);
+
+        console.log('✓ Данные загружены из БД:', {
+          заказов: ordersData.length,
+          водителей: driversData.length,
+          тягачей: trucksData.length,
+          прицепов: trailersData.length,
+          связей: fleetAssignmentsData.length
+        });
+
+      } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+        toast.error('Не удалось загрузить данные из базы данных');
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // ========================================
   // ОБРАБОТЧИКИ АУТЕНТИФИКАЦИИ
@@ -686,10 +298,36 @@ export default function App() {
   };
 
   /**
-   * Удаление заказа из системы
+   * Отмена заказа (изменение статуса на "Отменен")
    */
-  const deleteOrder = (orderId: string) => {
-    setOrders(orders.filter(order => order.id !== orderId));
+  const deleteOrder = async (orderId: string) => {
+    try {
+      // Отправляем запрос на бэкенд для обновления статуса
+      const result = await updateOrderStatusRequest(orderId, 'Отменен');
+      
+      if (!result.success) {
+        const msg = (result.error || '').toString().toLowerCase();
+        // Если сервер не знает о заказе, обновляем локально
+        if (msg.includes('не найден') || msg.includes('not found')) {
+          setOrders(orders.map(order => 
+            order.id === orderId ? { ...order, status: 'Отменен' } : order
+          ));
+          toast.info('Заказ отменён локально (на сервере заказ не найден)');
+          return;
+        }
+        toast.error(result.error || 'Не удалось отменить заказ');
+        return;
+      }
+      
+      // Обновляем локальное состояние после успешного обновления на сервере
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, status: 'Отменен' } : order
+      ));
+      toast.success('Заказ отменён');
+    } catch (error) {
+      console.error('Ошибка при отмене заказа:', error);
+      toast.error('Ошибка соединения с сервером');
+    }
   };
 
   /**
@@ -931,6 +569,18 @@ export default function App() {
   // Если пользователь не авторизован, показываем форму входа
   if (!user) {
     return <AuthForm onLogin={(user: User) => handleLogin(user)} />;
+  }
+
+  // Показываем индикатор загрузки, пока данные загружаются из БД
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg text-muted-foreground">Загрузка данных из базы данных...</p>
+        </div>
+      </div>
+    );
   }
 
   // Главный интерфейс приложения

@@ -473,4 +473,8 @@ app.delete('/api/fleet-assignments/:id', async (req, res) => {
   }
 });
 
-app.listen(3001, () => console.log('\nMock backend listening on port 3001\n'));
+// Запуск сервера
+const PORT = 3001;
+app.listen(PORT, () => {
+  console.log(`\nMock backend listening on port ${PORT}\n`);
+});
