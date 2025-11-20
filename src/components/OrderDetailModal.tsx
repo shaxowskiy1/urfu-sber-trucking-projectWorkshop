@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { MapPin, Calendar, Package, Truck, User, Phone, Star, CheckCircle, Trash2, UserX, CheckCircle2 } from 'lucide-react';
-import { fetchCalculatedDrivers, type CalculatedDriverItem } from '../services/calculateApi';
+import { fetchCalculatedDrivers, sendOrderPickupData, type CalculatedDriverItem } from '../services/calculateApi';
 import { assignCalculatedDriver } from '../services/assignmentApi';
 import { getOrderStatusStyle } from '../utils/orderStatusStyles';
 
@@ -304,15 +304,47 @@ export function OrderDetailModal({
   };
 
   const handleCalculate = async () => {
+    if (!order) return;
+
     setShowTransportSuggestions(true);
     setCalcLoading(true);
     setCalcError(null);
     setCalcData(null);
+
+    // Шаг 1: Отправляем данные заказа на бэкенд для работы алгоритма
+    if (order.originLatitude && order.originLongitude && order.pickupDate) {
+      try {
+        const sendResult = await sendOrderPickupData({
+          pickupDate: order.pickupDate,
+          pickupTime: order.pickupTime,
+          originLatitude: order.originLatitude,
+          originLongitude: order.originLongitude
+        });
+
+        if (!sendResult.success) {
+          setCalcError(`Ошибка отправки данных: ${sendResult.error}`);
+          setCalcLoading(false);
+          return;
+        }
+
+        console.log('Данные для алгоритма отправлены успешно:', sendResult.data);
+      } catch (error) {
+        setCalcError('Не удалось отправить данные на бэкенд');
+        setCalcLoading(false);
+        return;
+      }
+    } else {
+      setCalcError('Недостаточно данных для подбора водителя (требуются координаты и дата погрузки)');
+      setCalcLoading(false);
+      return;
+    }
+
+    // Шаг 2: Получаем результаты работы алгоритма
     const result = await fetchCalculatedDrivers();
     if (result.success) {
       setCalcData(result.data);
     } else {
-      setCalcError(result.error || 'Ошибка запроса');
+      setCalcError(result.error || 'Ошибка получения результатов');
     }
     setCalcLoading(false);
   };
@@ -478,7 +510,7 @@ export function OrderDetailModal({
 
                 {/* Назначенный транспорт */}
                 {order.assignedDriverId && (
-                  <>
+                  <React.Fragment key="assigned-transport">
                     <Separator />
                     <div>
                       <div className="text-sm font-medium text-muted-foreground mb-2">Назначенный транспорт</div>
@@ -487,7 +519,7 @@ export function OrderDetailModal({
                           {assignedTruck && assignedDriver ? (
                             <div className="flex items-center justify-between">
                               <div className="space-y-2">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2" key="truck-info">
                                   <Truck className="h-4 w-4 text-primary" />
                                   <div>
                                     <div className="font-semibold">Гос. номер: {assignedTruck.licensePlate}</div>
@@ -496,7 +528,7 @@ export function OrderDetailModal({
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2" key="driver-info">
                                   <User className="h-4 w-4 text-primary" />
                                   <div>
                                     <div className="font-semibold">Водитель: {assignedDriver.name}</div>
@@ -519,7 +551,7 @@ export function OrderDetailModal({
                           ) : (
                             <div className="flex items-center justify-between">
                               <div className="space-y-2">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2" key="driver-id-only">
                                   <User className="h-4 w-4 text-primary" />
                                   <div>
                                     <div className="font-semibold">Водитель ID: {order.assignedDriverId}</div>
@@ -528,7 +560,7 @@ export function OrderDetailModal({
                                     )}
                                   </div>
                                 </div>
-                                <div className="text-sm text-muted-foreground">
+                                <div className="text-sm text-muted-foreground" key="truck-not-found">
                                   Транспорт не найден для этого водителя. Возможно, связка не задана.
                                 </div>
                               </div>
@@ -545,7 +577,7 @@ export function OrderDetailModal({
                         </CardContent>
                       </Card>
                     </div>
-                  </>
+                  </React.Fragment>
                 )}
 
                 {/* Кнопки завершения и удаления заказа */}
@@ -637,15 +669,15 @@ export function OrderDetailModal({
                           <Card key={item.id} className="border">
                             <CardContent className="pt-4">
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div>
+                                <div key={`id-${item.id}`}>
                                   <div className="text-sm text-muted-foreground">ID</div>
                                   <div className="font-semibold">{item.id}</div>
                                 </div>
-                                <div>
+                                <div key={`coords-${item.id}`}>
                                   <div className="text-sm text-muted-foreground">Координаты отправления</div>
                                   <div className="font-medium">{item.originLatitude}, {item.originLongitude}</div>
                                 </div>
-                                <div>
+                                <div key={`date-${item.id}`}>
                                   <div className="text-sm text-muted-foreground">Дата доставки</div>
                                   <div className="font-medium">{formatIsoDateTime(item.deliveryDate)}</div>
                                 </div>
