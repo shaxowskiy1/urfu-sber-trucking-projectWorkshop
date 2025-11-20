@@ -9,7 +9,7 @@ export interface AssignResponse {
   error?: string;
 }
 
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = 'http://localhost:3001';
 
 export async function assignCalculatedDriver(body: AssignRequestBody): Promise<AssignResponse> {
   try {

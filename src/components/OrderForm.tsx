@@ -24,6 +24,7 @@ import { Textarea } from './ui/textarea';
 import { Checkbox } from './ui/checkbox';
 import { AddressInput } from './AddressInput';
 import { Send } from 'lucide-react';
+import { sendOrderPickupData } from '../services/calculateApi';
 
 /**
  * Интерфейс пользователя системы
@@ -166,7 +167,7 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
    * Обработчик отправки формы
    * Валидирует обязательные поля и передает данные родительскому компоненту
    */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Проверка обязательных полей (managerName теперь опционален)
@@ -206,6 +207,26 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
       vehicleCount: parseInt(formData.vehicleCount) || 1,
       externalOrderNumber: formData.externalOrderNumber || undefined
     });
+
+    // Отправка данных на бэкенд для алгоритма подбора водителя
+    if (formData.originLatitude && formData.originLongitude) {
+      try {
+        const result = await sendOrderPickupData({
+          pickupDate: formData.pickupDate,
+          pickupTime: includePickupTime ? formData.pickupTime : undefined,
+          originLatitude: formData.originLatitude,
+          originLongitude: formData.originLongitude
+        });
+        
+        if (!result.success) {
+          console.warn('Не удалось отправить данные для алгоритма подбора:', result.error);
+        } else {
+          console.log('Данные для алгоритма подбора успешно отправлены:', result.data);
+        }
+      } catch (error) {
+        console.error('Ошибка при отправке данных для алгоритма:', error);
+      }
+    }
 
     // Сброс формы (оставляем данные компании и менеджера для грузоотправителей)
     setFormData({

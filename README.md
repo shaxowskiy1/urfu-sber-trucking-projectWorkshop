@@ -5,7 +5,6 @@
 ## Технологии
 
 - **Frontend**: React 18 + TypeScript + Vite
-- **Backend**: Node.js + Express + SQLite3
 - **UI**: Tailwind CSS + shadcn/ui компоненты
 - **Уведомления**: Sonner (toast notifications)
 
@@ -101,7 +100,7 @@ frontend/
 
 ## API Endpoints
 
-Бэкенд доступен на `http://localhost:3001/api`
+Бэкенд доступен на `http://localhost:8080/api`
 
 - `POST /api/auth/login` - Авторизация
 - `POST /api/auth/register` - Регистрация
