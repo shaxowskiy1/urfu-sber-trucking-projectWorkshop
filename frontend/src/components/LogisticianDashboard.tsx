@@ -15,7 +15,7 @@ import { Button } from './ui/button';
 import { OrderTable } from './OrderTable';
 import { OrderDetailModal } from './OrderDetailModal';
 import { FleetManagement } from './FleetManagement';
-import { Package, Clock, Plus, Truck } from 'lucide-react';
+import { Package, Clock, Plus, Truck, RefreshCw } from 'lucide-react';
 import { AddOrderModal } from './AddOrderModal';
 import { CompanyOrdersModal } from './CompanyOrdersModal';
 
@@ -185,6 +185,35 @@ export function LogisticianDashboard({
   const [selectedCompany, setSelectedCompany] = useState<string>('');
   const [selectedManager, setSelectedManager] = useState<string>('');
   const [companyOrdersType, setCompanyOrdersType] = useState<'company' | 'manager'>('company');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  /**
+   * Обновление статусов заказов через API
+   */
+  const handleRefreshStatuses = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/status', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Ошибка при обновлении статусов');
+      }
+      
+      // Можно добавить обработку ответа, если API возвращает данные
+      const data = await response.json();
+      console.log('Статусы обновлены:', data);
+    } catch (error) {
+      console.error('Ошибка при обновлении статусов:', error);
+      alert('Не удалось обновить статусы. Проверьте подключение к серверу.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   /**
    * Открыть детали заказа
@@ -257,6 +286,15 @@ export function LogisticianDashboard({
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button 
+                onClick={handleRefreshStatuses}
+                className="flex items-center gap-2"
+                variant="outline"
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Обновить статусы
+              </Button>
               <Button 
                 onClick={() => setIsAddOrderModalOpen(true)}
                 className="flex items-center gap-2"
