@@ -88,6 +88,23 @@ export async function createOrderRequest(order: unknown) {
   );
 }
 
+/**
+ * Импорт заказа по внешнему номеру.
+ * Ожидается, что бэкенд вернет данные заказа, которые можно использовать
+ * для предварительного заполнения формы.
+ */
+export async function importOrderByExternalNumber(externalOrderNumber: string) {
+  return requestWithFallback<any>(
+    [
+      // Основной предполагаемый endpoint
+      { path: '/api/orders/import-external', method: 'POST' },
+      // Запасной вариант на случай другой конфигурации
+      { path: '/api/orders/import', method: 'POST' },
+    ],
+    { externalOrderNumber }
+  );
+}
+
 // Cache which endpoint is supported to avoid double requests on every change
 type StatusEndpointMode = 'unknown' | 'patch' | 'put';
 let STATUS_ENDPOINT_MODE: StatusEndpointMode = 'unknown';
