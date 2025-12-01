@@ -6,9 +6,11 @@
 
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
-import { OrderForm } from './OrderForm';
+import { OrderForm, OrderData } from './OrderForm';
 import { Alert, AlertDescription } from './ui/alert';
-import { createOrderRequest } from '../services/orderApi';
+import { createOrderRequest, importOrderByExternalNumber } from '../services/orderApi';
+import { Button } from './ui/button';
+import { ChevronDown } from 'lucide-react';
 
 /**
  * Интерфейс заказа для создания логистом
@@ -54,6 +56,8 @@ interface AddOrderModalProps {
 export function AddOrderModal({ isOpen, onClose, onAddOrder }: AddOrderModalProps) {
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importedData, setImportedData] = useState<Partial<OrderData> | null>(null);
 
   /**
    * Обработчик отправки формы заказа
@@ -82,14 +86,81 @@ export function AddOrderModal({ isOpen, onClose, onAddOrder }: AddOrderModalProp
     }
   };
 
+  /**
+   * Обработчик импорта заказа по внешнему номеру
+   */
+  const handleImportClick = async () => {
+    // Запрашиваем номер заказа у пользователя
+    const externalNumber = window.prompt('Введите номер заказа на внешней площадке для импорта');
+    if (!externalNumber) {
+      return;
+    }
+
+    setError('');
+    setIsImporting(true);
+
+    const result = await importOrderByExternalNumber(externalNumber);
+
+    if (!result.success || !result.data) {
+      setError(result.error || 'Не удалось импортировать заказ');
+      setIsImporting(false);
+      return;
+    }
+
+    // Пытаемся аккуратно сопоставить поля ответа с полями формы
+    const data: any = result.data.order ?? result.data;
+
+    const mapped: Partial<OrderData> = {
+      shipperName: data.shipperName ?? '',
+      managerName: data.managerName ?? '',
+      origin: data.origin ?? '',
+      destination: data.destination ?? '',
+      originLatitude: data.originLatitude ?? undefined,
+      originLongitude: data.originLongitude ?? undefined,
+      destinationLatitude: data.destinationLatitude ?? undefined,
+      destinationLongitude: data.destinationLongitude ?? undefined,
+      trailerType: data.trailerType ?? '',
+      volume: data.volume ?? '',
+      weight: data.weight ?? '',
+      pickupDate: data.pickupDate ?? '',
+      pickupTime: data.pickupTime ?? undefined,
+      deliveryDate: data.deliveryDate ?? '',
+      deliveryTime: data.deliveryTime ?? undefined,
+      cargoType: data.cargoType ?? '',
+      specialRequirements: data.specialRequirements ?? '',
+      transportationCost: data.transportationCost ?? 0,
+      length: data.length ?? '',
+      width: data.width ?? '',
+      height: data.height ?? '',
+      vehicleCount: data.vehicleCount ?? 1,
+      externalOrderNumber: data.externalOrderNumber ?? externalNumber,
+    };
+
+    setImportedData(mapped);
+    setIsImporting(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl w-[90vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Добавить новый заказ</DialogTitle>
-          <DialogDescription>
-            Заполните детали заказа на перевозку. Все поля, отмеченные звездочкой (*), обязательны для заполнения.
-          </DialogDescription>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <DialogTitle>Добавить новый заказ</DialogTitle>
+              <DialogDescription>
+                Заполните детали заказа на перевозку. Все поля, отмеченные звездочкой (*), обязательны для заполнения.
+              </DialogDescription>
+            </div>
+            <Button
+              type="button"
+              onClick={handleImportClick}
+              className="bg-black text-white hover:bg-black/90 flex items-center gap-2"
+              disabled={isImporting || isLoading}
+            >
+              <ChevronDown className="h-4 w-4" />
+              Импорт заказа
+            </Button>
+          </div>
         </DialogHeader>
         {error && (
           <Alert variant="destructive" className="mt-4">
@@ -106,11 +177,12 @@ export function AddOrderModal({ isOpen, onClose, onAddOrder }: AddOrderModalProp
               userType: 'logistician'
             }}
             isLogistician={true}
+            initialData={importedData ?? undefined}
           />
         </div>
-        {isLoading && (
+        {(isLoading || isImporting) && (
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            Отправка данных на сервер...
+            {isLoading ? 'Отправка данных на сервер...' : 'Импортируем данные заказа...'}
           </div>
         )}
       </DialogContent>
