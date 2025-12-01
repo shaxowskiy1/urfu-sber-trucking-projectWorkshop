@@ -14,6 +14,7 @@ import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { FileText, Download } from 'lucide-react';
+import { Checkbox } from './ui/checkbox';
 
 /**
  * Интерфейс заказа для пропуска
@@ -94,6 +95,25 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
     purpose: 'Коммерческая перевозка грузов',
     routeDescription: '',
     additionalNotes: ''
+  });
+
+  // Паспортные данные водителя
+  const [passportData, setPassportData] = useState({
+    fullName: '',
+    birthDate: '',
+    series: '',
+    number: '',
+    issuedBy: '',
+    divisionCode: ''
+  });
+
+  // Отображаемые поля паспорта (чекбоксы)
+  const [passportVisible, setPassportVisible] = useState({
+    fullName: true,
+    birthDate: true,
+    seriesNumber: true,
+    issuedBy: true,
+    divisionCode: true
   });
 
   // Флаг сгенерированного пропуска
@@ -192,6 +212,185 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
                     <div>
                       <Label>Телефон</Label>
                       <div className="font-medium">{driver.phone}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Паспортные данные */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Паспорт</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    {/* ФИО */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="passport-fullName"
+                          checked={passportVisible.fullName}
+                          onCheckedChange={(checked) =>
+                            setPassportVisible((prev) => ({
+                              ...prev,
+                              fullName: !!checked
+                            }))
+                          }
+                        />
+                        <Label htmlFor="passport-fullName" className="cursor-pointer">
+                          ФИО
+                        </Label>
+                      </div>
+                      <Input
+                        value={passportData.fullName}
+                        onChange={(e) =>
+                          setPassportData((prev) => ({
+                            ...prev,
+                            fullName: e.target.value
+                          }))
+                        }
+                        placeholder="Фамилия Имя Отчество"
+                      />
+                    </div>
+
+                    {/* Дата рождения */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="passport-birthDate"
+                          checked={passportVisible.birthDate}
+                          onCheckedChange={(checked) =>
+                            setPassportVisible((prev) => ({
+                              ...prev,
+                              birthDate: !!checked
+                            }))
+                          }
+                        />
+                        <Label htmlFor="passport-birthDate" className="cursor-pointer">
+                          Дата рождения
+                        </Label>
+                      </div>
+                      <Input
+                        type="date"
+                        value={passportData.birthDate}
+                        onChange={(e) =>
+                          setPassportData((prev) => ({
+                            ...prev,
+                            birthDate: e.target.value
+                          }))
+                        }
+                      />
+                    </div>
+
+                    {/* Серия и номер в одной строке */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="passport-series-number"
+                          checked={passportVisible.seriesNumber}
+                          onCheckedChange={(checked) =>
+                            setPassportVisible((prev) => ({
+                              ...prev,
+                              seriesNumber: !!checked
+                            }))
+                          }
+                        />
+                        <Label htmlFor="passport-series-number" className="cursor-pointer">
+                          Серия и номер
+                        </Label>
+                      </div>
+                      <div className="grid grid-cols-[1fr,1fr] gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="passport-series" className="text-xs text-muted-foreground">
+                            Серия
+                          </Label>
+                          <Input
+                            id="passport-series"
+                            value={passportData.series}
+                            onChange={(e) =>
+                              setPassportData((prev) => ({
+                                ...prev,
+                                series: e.target.value
+                              }))
+                            }
+                            placeholder="0000"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="passport-number" className="text-xs text-muted-foreground">
+                            Номер
+                          </Label>
+                          <Input
+                            id="passport-number"
+                            value={passportData.number}
+                            onChange={(e) =>
+                              setPassportData((prev) => ({
+                                ...prev,
+                                number: e.target.value
+                              }))
+                            }
+                            placeholder="000000"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Кем выдан */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="passport-issuedBy"
+                          checked={passportVisible.issuedBy}
+                          onCheckedChange={(checked) =>
+                            setPassportVisible((prev) => ({
+                              ...prev,
+                              issuedBy: !!checked
+                            }))
+                          }
+                        />
+                        <Label htmlFor="passport-issuedBy" className="cursor-pointer">
+                          Кем выдан
+                        </Label>
+                      </div>
+                      <Input
+                        value={passportData.issuedBy}
+                        onChange={(e) =>
+                          setPassportData((prev) => ({
+                            ...prev,
+                            issuedBy: e.target.value
+                          }))
+                        }
+                        placeholder="Название органа, выдавшего паспорт"
+                      />
+                    </div>
+
+                    {/* Код подразделения */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="passport-divisionCode"
+                          checked={passportVisible.divisionCode}
+                          onCheckedChange={(checked) =>
+                            setPassportVisible((prev) => ({
+                              ...prev,
+                              divisionCode: !!checked
+                            }))
+                          }
+                        />
+                        <Label htmlFor="passport-divisionCode" className="cursor-pointer">
+                          Код подразделения
+                        </Label>
+                      </div>
+                      <Input
+                        value={passportData.divisionCode}
+                        onChange={(e) =>
+                          setPassportData((prev) => ({
+                            ...prev,
+                            divisionCode: e.target.value
+                          }))
+                        }
+                        placeholder="000-000"
+                      />
                     </div>
                   </div>
                 </CardContent>
@@ -299,7 +498,41 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
                           <div>Телефон: {driver.phone}</div>
                         </div>
                       </div>
-                      
+
+                      {/* Паспортные данные (только активные чекбоксы) */}
+                      {(passportVisible.fullName ||
+                        passportVisible.birthDate ||
+                        passportVisible.seriesNumber ||
+                        passportVisible.issuedBy ||
+                        passportVisible.divisionCode) && (
+                        <div>
+                          <Label className="text-sm font-semibold">ПАСПОРТНЫЕ ДАННЫЕ:</Label>
+                          <div className="mt-1 space-y-1">
+                            {passportVisible.fullName && passportData.fullName && (
+                              <div>ФИО: {passportData.fullName}</div>
+                            )}
+                            {passportVisible.birthDate && passportData.birthDate && (
+                              <div>
+                                Дата рождения:{' '}
+                                {new Date(passportData.birthDate).toLocaleDateString('ru-RU')}
+                              </div>
+                            )}
+                            {passportVisible.seriesNumber &&
+                              (passportData.series || passportData.number) && (
+                                <div>
+                                  Серия и номер: {passportData.series} {passportData.number}
+                                </div>
+                              )}
+                            {passportVisible.issuedBy && passportData.issuedBy && (
+                              <div>Кем выдан: {passportData.issuedBy}</div>
+                            )}
+                            {passportVisible.divisionCode && passportData.divisionCode && (
+                              <div>Код подразделения: {passportData.divisionCode}</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       <div>
                         <Label className="text-sm font-semibold">ТРАНСПОРТНОЕ СРЕДСТВО:</Label>
                         <div className="mt-1 space-y-1">
