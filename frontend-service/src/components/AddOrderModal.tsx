@@ -45,7 +45,8 @@ interface Order {
 interface AddOrderModalProps {
   isOpen: boolean;                // Открыто ли модальное окно
   onClose: () => void;            // Callback для закрытия окна
-  onAddOrder: (order: Order) => void; // Callback для добавления заказа
+  // order из формы не содержит id/status/assignedDriverId и может включать vehicleCount
+  onAddOrder: (order: Omit<Order, 'id' | 'status' | 'assignedDriverId'> & { vehicleCount?: number }) => void;
 }
 
 /**
@@ -59,7 +60,7 @@ export function AddOrderModal({ isOpen, onClose, onAddOrder }: AddOrderModalProp
    * Обработчик отправки формы заказа
    * Отправляет данные на бэкенд перед вызовом onAddOrder
    */
-  const handleSubmit = async (order: Order) => {
+  const handleSubmit = async (order: Omit<Order, 'id' | 'status' | 'assignedDriverId'> & { vehicleCount?: number }) => {
     setError('');
     setIsLoading(true);
 

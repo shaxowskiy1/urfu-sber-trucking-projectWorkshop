@@ -18,6 +18,7 @@ import { FleetManagement } from './FleetManagement';
 import { Package, Clock, Plus, Truck } from 'lucide-react';
 import { AddOrderModal } from './AddOrderModal';
 import { CompanyOrdersModal } from './CompanyOrdersModal';
+import { Checkbox } from './ui/checkbox';
 
 /**
  * Интерфейс заказа в системе
@@ -135,7 +136,7 @@ interface LogisticianDashboardProps {
   onUpdateDriver: (driverId: string, updates: Partial<Driver>) => void;
   onUpdateTruck: (truckId: string, updates: Partial<Truck>) => void;
   onUpdateTrailer: (trailerId: string, updates: Partial<Trailer>) => void;
-  onAddOrder: (order: Omit<Order, 'id' | 'status' | 'assignedDriverId'>) => void;
+  onAddOrder: (order: Omit<Order, 'id' | 'status' | 'assignedDriverId'> & { vehicleCount?: number }) => void;
   onDeleteOrder: (orderId: string) => void;
   onUpdateCompanyComment: (companyName: string, comment: string) => void;
   onUpdateManagerComment: (managerName: string, comment: string) => void;
@@ -186,6 +187,13 @@ export function LogisticianDashboard({
   const [selectedManager, setSelectedManager] = useState<string>('');
   const [companyOrdersType, setCompanyOrdersType] = useState<'company' | 'manager'>('company');
   // Убрана предзагрузка водителей при создании заказа
+  const [hideCompleted, setHideCompleted] = useState(false);
+
+  const visibleOrders = hideCompleted
+    ? orders.filter(
+        (order) => order.status !== 'Выполнен' && order.status !== 'Отменен',
+      )
+    : orders;
 
   // Автообновление данных в открытом модальном окне деталей заказа
   useEffect(() => {
@@ -264,12 +272,25 @@ export function LogisticianDashboard({
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <CardTitle>Управление заказами</CardTitle>
               <CardDescription>
                 Просматривайте и назначайте транспорт для заказов на перевозку. Нажмите на заказ для просмотра предложений по транспорту.
               </CardDescription>
+              <div className="mt-3 flex items-center gap-2">
+                <Checkbox
+                  id="hide-completed-orders"
+                  checked={hideCompleted}
+                  onCheckedChange={(checked) => setHideCompleted(!!checked)}
+                />
+                <label
+                  htmlFor="hide-completed-orders"
+                  className="text-sm text-muted-foreground cursor-pointer select-none"
+                >
+                  Скрыть выполненные и отмененные заказы
+                </label>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button 
@@ -292,7 +313,7 @@ export function LogisticianDashboard({
         </CardHeader>
         <CardContent>
           <OrderTable 
-            orders={orders} 
+            orders={visibleOrders} 
             drivers={drivers} 
             trucks={trucks} 
             comments={comments}
