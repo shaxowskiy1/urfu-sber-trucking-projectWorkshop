@@ -21,13 +21,12 @@ spring:
       mode: always
 
 server:
-  port: 8080
+  port: 8084
 
 logging:
   level:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
 
 
 api:
