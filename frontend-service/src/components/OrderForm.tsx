@@ -38,7 +38,7 @@ interface User {
 /**
  * Интерфейс данных заказа для отправки
  */
-interface OrderData {
+export interface OrderData {
   shipperName: string;
   managerName?: string;           // Опционально
   origin: string;
@@ -71,9 +71,13 @@ interface OrderFormProps {
   onSubmit: (order: OrderData) => void;
   currentUser: User;
   isLogistician?: boolean;
+  /**
+   * Данные для предварительного заполнения формы (например, после импорта заказа)
+   */
+  initialData?: Partial<OrderData>;
 }
 
-export function OrderForm({ onSubmit, currentUser, isLogistician = false }: OrderFormProps) {
+export function OrderForm({ onSubmit, currentUser, isLogistician = false, initialData }: OrderFormProps) {
   // Состояние формы с начальными значениями
   // Для грузоотправителей автоматически заполняются компания и менеджер
   const [formData, setFormData] = useState({
@@ -101,6 +105,30 @@ export function OrderForm({ onSubmit, currentUser, isLogistician = false }: Orde
     vehicleCount: '1',
     externalOrderNumber: ''
   });
+
+  /**
+   * Обновление формы при изменении initialData (например, после импорта заказа)
+   */
+  useEffect(() => {
+    if (!initialData) return;
+
+    setFormData(prev => ({
+      ...prev,
+      ...initialData,
+      transportationCost: initialData.transportationCost !== undefined
+        ? String(initialData.transportationCost)
+        : prev.transportationCost,
+      vehicleCount: initialData.vehicleCount !== undefined
+        ? String(initialData.vehicleCount)
+        : prev.vehicleCount,
+      // Числовые поля могут приходить как number, приводим к строке
+      length: initialData.length !== undefined ? String(initialData.length) : prev.length,
+      width: initialData.width !== undefined ? String(initialData.width) : prev.width,
+      height: initialData.height !== undefined ? String(initialData.height) : prev.height,
+      volume: initialData.volume !== undefined ? String(initialData.volume as any) : prev.volume,
+      weight: initialData.weight !== undefined ? String(initialData.weight as any) : prev.weight,
+    } as typeof prev));
+  }, [initialData]);
 
   // Флаги для опциональных полей
   const [includeDimensions, setIncludeDimensions] = useState(false); // Показывать поля размеров груза
