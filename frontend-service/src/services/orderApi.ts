@@ -183,3 +183,19 @@ export async function updateOrderStatusRequest(orderId: string, status: string) 
   return patchAttempt.result;
 }
 
+/**
+ * Создание пропуска для заказа
+ */
+export async function createPassRequest(passData: unknown) {
+  return requestWithFallback<{ pass?: unknown; message?: string }>(
+    [
+      { path: '/api/auth/pass', method: 'POST' },
+      { path: '/api/pass', method: 'POST' },
+      { path: '/api/passes/create', method: 'POST' },
+      { path: '/api/passes', method: 'POST' },
+      { path: '/api/orders/pass', method: 'POST' },
+    ],
+    passData
+  );
+}
+
