@@ -388,7 +388,8 @@ export function OrderTable({
                       <Eye className="h-4 w-4" />
                       Просмотр
                     </Button>
-                    <Button
+                    {/* ЗАКОММЕНТИРОВАНО: Кнопка "Пропуск" перенесена в панель логиста */}
+                    {/* <Button
                       variant="outline"
                       size="sm"
                       onClick={(e) => handleCreatePass(order, e)}
@@ -396,7 +397,7 @@ export function OrderTable({
                     >
                       <FileText className="h-4 w-4" />
                       Пропуск
-                    </Button>
+                    </Button> */}
                     <Button
                       variant="outline"
                       size="sm"

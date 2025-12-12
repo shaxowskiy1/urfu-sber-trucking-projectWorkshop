@@ -15,7 +15,8 @@ import { Button } from './ui/button';
 import { OrderTable } from './OrderTable';
 import { OrderDetailModal } from './OrderDetailModal';
 import { FleetManagement } from './FleetManagement';
-import { Package, Clock, Plus, Truck } from 'lucide-react';
+import { PassCreationModal } from './PassCreationModal';
+import { Package, Clock, Plus, Truck, FileText } from 'lucide-react';
 import { AddOrderModal } from './AddOrderModal';
 import { CompanyOrdersModal } from './CompanyOrdersModal';
 
@@ -180,6 +181,7 @@ export function LogisticianDashboard({
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFleetManagementOpen, setIsFleetManagementOpen] = useState(false);
+  const [isPassCreationOpen, setIsPassCreationOpen] = useState(false);
   const [isAddOrderModalOpen, setIsAddOrderModalOpen] = useState(false);
   const [isCompanyOrdersOpen, setIsCompanyOrdersOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>('');
@@ -287,6 +289,14 @@ export function LogisticianDashboard({
                 <Truck className="h-4 w-4" />
                 Управление автопарком
               </Button>
+              <Button 
+                onClick={() => setIsPassCreationOpen(true)}
+                className="flex items-center gap-2"
+                variant="outline"
+              >
+                <FileText className="h-4 w-4" />
+                Создать пропуск
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -334,6 +344,15 @@ export function LogisticianDashboard({
         onUpdateDriver={onUpdateDriver}
         onUpdateTruck={onUpdateTruck}
         onUpdateTrailer={onUpdateTrailer}
+      />
+
+      <PassCreationModal
+        isOpen={isPassCreationOpen}
+        onClose={() => setIsPassCreationOpen(false)}
+        orders={orders}
+        drivers={drivers}
+        trucks={trucks}
+        trailers={trailers}
       />
 
       <AddOrderModal

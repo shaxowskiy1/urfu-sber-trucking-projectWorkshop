@@ -114,7 +114,15 @@ const DEMO_DRIVERS = [
     licenseNumber: '7701 234567',
     availability: 'В рейсе',
     comment: 'Опытный водитель, 15 лет стажа',
-    assignedTruckId: 'TRK-001'
+    assignedTruckId: 'TRK-001',
+    // Дополнительные данные для пропуска
+    birthDate: '1985-05-15',
+    birthPlace: 'г. Москва',
+    passportSeries: '45 01',
+    passportNumber: '123456',
+    passportIssuedBy: 'УМВД России по г. Москве',
+    passportIssueDate: '2005-06-20',
+    registrationAddress: 'г. Москва, ул. Ленина, д. 10, кв. 25'
   },
   {
     id: 'DRV-002',
@@ -123,7 +131,15 @@ const DEMO_DRIVERS = [
     licenseNumber: '7702 345678',
     availability: 'В рейсе',
     comment: 'Специализация - дальние рейсы',
-    assignedTruckId: 'TRK-002'
+    assignedTruckId: 'TRK-002',
+    // Дополнительные данные для пропуска
+    birthDate: '1990-08-22',
+    birthPlace: 'г. Санкт-Петербург',
+    passportSeries: '40 02',
+    passportNumber: '654321',
+    passportIssuedBy: 'УМВД России по г. Санкт-Петербургу',
+    passportIssueDate: '2010-09-10',
+    registrationAddress: 'г. Санкт-Петербург, Невский пр., д. 50, кв. 100'
   },
   {
     id: 'DRV-003',
@@ -132,7 +148,15 @@ const DEMO_DRIVERS = [
     licenseNumber: '7703 456789',
     availability: 'Доступен',
     comment: 'Работает с рефрижераторами',
-    assignedTruckId: 'TRK-003'
+    assignedTruckId: 'TRK-003',
+    // Дополнительные данные для пропуска
+    birthDate: '1988-12-03',
+    birthPlace: 'г. Екатеринбург',
+    passportSeries: '66 03',
+    passportNumber: '789012',
+    passportIssuedBy: 'УМВД России по Свердловской области',
+    passportIssueDate: '2008-12-15',
+    registrationAddress: 'г. Екатеринбург, ул. Малышева, д. 33, кв. 77'
   },
   {
     id: 'DRV-004',
@@ -141,7 +165,15 @@ const DEMO_DRIVERS = [
     licenseNumber: '7704 567890',
     availability: 'Доступен',
     comment: 'Новый сотрудник, обучен',
-    assignedTruckId: 'TRK-004'
+    assignedTruckId: 'TRK-004',
+    // Дополнительные данные для пропуска
+    birthDate: '1995-03-10',
+    birthPlace: 'г. Казань',
+    passportSeries: '92 04',
+    passportNumber: '345678',
+    passportIssuedBy: 'УМВД России по Республике Татарстан',
+    passportIssueDate: '2015-04-01',
+    registrationAddress: 'г. Казань, ул. Баумана, д. 15, кв. 42'
   },
   {
     id: 'DRV-005',
@@ -150,7 +182,15 @@ const DEMO_DRIVERS = [
     licenseNumber: '7705 678901',
     availability: 'На ТО',
     comment: 'Транспорт на техобслуживании',
-    assignedTruckId: null
+    assignedTruckId: null,
+    // Дополнительные данные для пропуска
+    birthDate: '1982-07-18',
+    birthPlace: 'г. Новосибирск',
+    passportSeries: '50 05',
+    passportNumber: '901234',
+    passportIssuedBy: 'УМВД России по Новосибирской области',
+    passportIssueDate: '2002-08-25',
+    registrationAddress: 'г. Новосибирск, Красный проспект, д. 5, кв. 12'
   }
 ];
 
