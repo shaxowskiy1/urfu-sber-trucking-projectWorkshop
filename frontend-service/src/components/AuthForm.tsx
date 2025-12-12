@@ -145,13 +145,6 @@ export function AuthForm({ onLogin }: AuthFormProps) {
     userType: 'shipper' as 'shipper' | 'logistician'
   });
 
-  // Тестовые учетные записи для проверки
-  const testAccounts = [
-    { inn: '7701234567', password: 'shipper123', name: 'Иван Иванов', company: 'ООО "МеталлСтрой"', userType: 'shipper' as const },
-    { inn: '7709876543', password: 'logist123', name: 'Петр Петров', company: 'ООО "ЛогистикПро"', userType: 'logistician' as const },
-    { inn: 'demo', password: 'demo', name: 'Демо пользователь', company: 'Демо компания', userType: 'shipper' as const }
-  ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -165,63 +158,29 @@ export function AuthForm({ onLogin }: AuthFormProps) {
       return;
     }
 
-    // Проверка учетных данных по шаблону
-    if (isLogin) {
-      const account = testAccounts.find(
-        acc => acc.inn === formData.inn && acc.password === formData.password
-      );
+    const url = isLogin
+      ? 'http://localhost:8080/api/auth/login'
+      : 'http://localhost:8080/api/auth/register';
 
-      if (!account) {
-        setLoginError('Неверный ИНН или пароль. Попробуйте: ИНН "7709876543", пароль "logist123"');
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formData)
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        setLoginError(result.message || 'Ошибка авторизации / регистрации');
         return;
       }
 
-      // Возвращаем пользователя с данными из учетной записи
-      const user: User = {
-        inn: account.inn,
-        name: account.name,
-        company: account.company,
-        userType: account.userType
-      };
-
-      onLogin(user);
-      return;
+      // Возвращаем только нужные поля с безопасным значением имени
+      const { inn, company, userType, name } = result.user || result;
+      onLogin({ inn, company, userType, name: name || 'Пользователь' });
+    } catch (err) {
+      setLoginError('Ошибка соединения с сервером');
     }
-
-    // Регистрация - создаем нового пользователя
-    const user: User = {
-      inn: formData.inn,
-      name: 'Новый пользователь',
-      company: formData.company,
-      userType: formData.userType
-    };
-
-    onLogin(user);
-
-    // ЗАКОММЕНТИРОВАНО: Код для работы с бэкендом
-    // const url = isLogin
-    //   ? 'http://localhost:8080/api/auth/login'
-    //   : 'http://localhost:8080/api/auth/register';
-
-    // try {
-    //   const response = await fetch(url, {
-    //     method: 'POST',
-    //     headers: {'Content-Type': 'application/json'},
-    //     body: JSON.stringify(formData)
-    //   });
-    //   const result = await response.json();
-
-    //   if (!response.ok) {
-    //     setLoginError(result.message || 'Ошибка авторизации / регистрации');
-    //     return;
-    //   }
-
-    //   // Возвращаем только нужные поля с безопасным значением имени
-    //   const { inn, company, userType, name } = result.user || result;
-    //   onLogin({ inn, company, userType, name: name || 'Пользователь' });
-    // } catch (err) {
-    //   setLoginError('Ошибка соединения с сервером');
-    // }
   };
 
   const resetForm = () => {
