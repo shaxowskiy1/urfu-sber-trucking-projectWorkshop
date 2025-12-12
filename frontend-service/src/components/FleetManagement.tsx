@@ -138,6 +138,13 @@ export function FleetManagement({
 
   const [driverForm, setDriverForm] = useState({
     name: '',
+    birthDate: '',
+    birthPlace: '',
+    passportSeries: '',
+    passportNumber: '',
+    passportIssuedBy: '',
+    passportIssueDate: '',
+    registrationAddress: '',
     phone: '',
     licenseNumber: '',
     comment: ''
@@ -243,6 +250,13 @@ export function FleetManagement({
   const resetDriverForm = () => {
     setDriverForm({
       name: '',
+      birthDate: '',
+      birthPlace: '',
+      passportSeries: '',
+      passportNumber: '',
+      passportIssuedBy: '',
+      passportIssueDate: '',
+      registrationAddress: '',
       phone: '',
       licenseNumber: '',
       comment: ''
@@ -624,41 +638,128 @@ export function FleetManagement({
         {/* Форма добавления водителя */}
         {showDriverForm && (
           <Dialog open={showDriverForm} onOpenChange={setShowDriverForm}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Добавить водителя</DialogTitle>
+                <DialogDescription>
+                  Заполните все необходимые данные о водителе
+                </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleDriverSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>ФИО *</Label>
-                    <Input
-                      value={driverForm.name}
-                      onChange={(e) => setDriverForm(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Введите полное имя"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Телефон *</Label>
-                    <Input
-                      value={driverForm.phone}
-                      onChange={(e) => setDriverForm(prev => ({ ...prev, phone: e.target.value }))}
-                      placeholder="+7 (999) 123-45-67"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Водительское удостоверение *</Label>
-                    <Input
-                      value={driverForm.licenseNumber}
-                      onChange={(e) => setDriverForm(prev => ({ ...prev, licenseNumber: e.target.value }))}
-                      placeholder="ВУ-77-123456"
-                      required
-                    />
+              <form onSubmit={handleDriverSubmit} className="space-y-6">
+                {/* Основная информация */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold border-b pb-2">Личные данные</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>ФИО водителя *</Label>
+                      <Input
+                        value={driverForm.name}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Иванов Иван Иванович"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Дата рождения *</Label>
+                      <Input
+                        type="date"
+                        value={driverForm.birthDate}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, birthDate: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Место рождения *</Label>
+                      <Input
+                        value={driverForm.birthPlace}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, birthPlace: e.target.value }))}
+                        placeholder="По паспорту"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
+                {/* Паспортные данные */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold border-b pb-2">Паспортные данные</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Серия паспорта *</Label>
+                      <Input
+                        value={driverForm.passportSeries}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, passportSeries: e.target.value }))}
+                        placeholder="45 01"
+                        maxLength={5}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Номер паспорта *</Label>
+                      <Input
+                        value={driverForm.passportNumber}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, passportNumber: e.target.value }))}
+                        placeholder="123456"
+                        maxLength={6}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Кем выдан *</Label>
+                      <Input
+                        value={driverForm.passportIssuedBy}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, passportIssuedBy: e.target.value }))}
+                        placeholder="УМВД России по г. Москве"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Дата выдачи *</Label>
+                      <Input
+                        type="date"
+                        value={driverForm.passportIssueDate}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, passportIssueDate: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Адрес регистрации *</Label>
+                      <Input
+                        value={driverForm.registrationAddress}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, registrationAddress: e.target.value }))}
+                        placeholder="г. Москва, ул. Ленина, д. 1, кв. 1"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Контактная информация и ВУ */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold border-b pb-2">Контактная информация</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Контактный телефон *</Label>
+                      <Input
+                        value={driverForm.phone}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="+7 (999) 123-45-67"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Водительское удостоверение *</Label>
+                      <Input
+                        value={driverForm.licenseNumber}
+                        onChange={(e) => setDriverForm(prev => ({ ...prev, licenseNumber: e.target.value }))}
+                        placeholder="77 01 123456"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Комментарий */}
                 <div className="space-y-2">
                   <Label>Комментарий</Label>
                   <Textarea
@@ -669,7 +770,7 @@ export function FleetManagement({
                   />
                 </div>
 
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-end space-x-2 pt-4 border-t">
                   <Button type="button" variant="outline" onClick={() => setShowDriverForm(false)}>
                     Отмена
                   </Button>
