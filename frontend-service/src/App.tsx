@@ -382,45 +382,133 @@ export default function App() {
   /**
    * Добавление нового водителя в систему
    */
-  const addDriver = (newDriver: Omit<Driver, 'id'>) => {
+  const addDriver = async (newDriver: Omit<Driver, 'id'>) => {
+    // Попытка отправить на бэкенд
+    try {
+      const response = await fetch('http://localhost:8080/api/drivers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newDriver)
+      });
+
+      if (response.ok) {
+        const createdDriver = await response.json();
+        setDrivers([...drivers, createdDriver]);
+        toast.success('Водитель успешно добавлен');
+        return;
+      }
+    } catch (error) {
+      console.warn('Backend недоступен, сохраняем локально:', error);
+    }
+
+    // Fallback: сохранение в локальный state
     const driver: Driver = {
       ...newDriver,
       id: `ВОД-${String(drivers.length + 1).padStart(3, '0')}`
     };
     setDrivers([...drivers, driver]);
+    toast.success('Водитель добавлен (локально)');
   };
 
   /**
    * Добавление нового транспортного средства (тягача)
    */
-  const addTruck = (newTruck: Omit<Truck, 'id'>) => {
+  const addTruck = async (newTruck: Omit<Truck, 'id'>) => {
+    // Попытка отправить на бэкенд
+    try {
+      const response = await fetch('http://localhost:8080/api/trucks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTruck)
+      });
+
+      if (response.ok) {
+        const createdTruck = await response.json();
+        setTrucks([...trucks, createdTruck]);
+        toast.success('Транспорт успешно добавлен');
+        return;
+      }
+    } catch (error) {
+      console.warn('Backend недоступен, сохраняем локально:', error);
+    }
+
+    // Fallback: сохранение в локальный state
     const truck: Truck = {
       ...newTruck,
       id: `АВТ-${String(trucks.length + 1).padStart(3, '0')}`
     };
     setTrucks([...trucks, truck]);
+    toast.success('Транспорт добавлен (локально)');
   };
 
   /**
    * Добавление нового прицепа
    */
-  const addTrailer = (newTrailer: Omit<Trailer, 'id'>) => {
+  const addTrailer = async (newTrailer: Omit<Trailer, 'id'>) => {
+    // Попытка отправить на бэкенд
+    try {
+      const response = await fetch('http://localhost:8080/api/trailers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTrailer)
+      });
+
+      if (response.ok) {
+        const createdTrailer = await response.json();
+        setTrailers([...trailers, createdTrailer]);
+        toast.success('Прицеп успешно добавлен');
+        return;
+      }
+    } catch (error) {
+      console.warn('Backend недоступен, сохраняем локально:', error);
+    }
+
+    // Fallback: сохранение в локальный state
     const trailer: Trailer = {
       ...newTrailer,
       id: `ПРЦ-${String(trailers.length + 1).padStart(3, '0')}`
     };
     setTrailers([...trailers, trailer]);
+    toast.success('Прицеп добавлен (локально)');
   };
 
   /**
    * Создание связи между водителем, транспортом и прицепом
    */
-  const addFleetAssignment = (assignment: Omit<FleetAssignment, 'id'>) => {
+  const addFleetAssignment = async (assignment: Omit<FleetAssignment, 'id'>) => {
+    // Попытка отправить на бэкенд
+    try {
+      const response = await fetch('http://localhost:8080/api/fleet-assignments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(assignment)
+      });
+
+      if (response.ok) {
+        const createdAssignment = await response.json();
+        setFleetAssignments([...fleetAssignments, createdAssignment]);
+        toast.success('Связь успешно создана');
+        return;
+      }
+    } catch (error) {
+      console.warn('Backend недоступен, сохраняем локально:', error);
+    }
+
+    // Fallback: сохранение в локальный state
     const newAssignment: FleetAssignment = {
       ...assignment,
       id: `СВЗ-${String(fleetAssignments.length + 1).padStart(3, '0')}`
     };
     setFleetAssignments([...fleetAssignments, newAssignment]);
+    toast.success('Связь создана (локально)');
   };
 
   /**
