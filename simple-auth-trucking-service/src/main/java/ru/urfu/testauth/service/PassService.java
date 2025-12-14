@@ -1,4 +1,4 @@
-package ru.urfu.testauth.service;
+ package ru.urfu.testauth.service;
 
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;

@@ -196,11 +196,27 @@ export function FleetManagement({
 
   const handleDriverSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!driverForm.name || !driverForm.phone || !driverForm.licenseNumber) return;
+    
+    // Валидация обязательных полей
+    if (!driverForm.name || !driverForm.name.trim()) {
+      alert('Пожалуйста, укажите ФИО водителя');
+      return;
+    }
+    if (!driverForm.phone || !driverForm.phone.trim()) {
+      alert('Пожалуйста, укажите телефон водителя');
+      return;
+    }
+    if (!driverForm.licenseNumber || !driverForm.licenseNumber.trim()) {
+      alert('Пожалуйста, укажите номер водительского удостоверения');
+      return;
+    }
 
     onAddDriver({
-      ...driverForm,
-      availability: 'Не работает'
+      name: driverForm.name.trim(),
+      phone: driverForm.phone.trim(),
+      licenseNumber: driverForm.licenseNumber.trim(),
+      availability: 'Доступен', // Изменено с 'Не работает' на 'Доступен'
+      comment: driverForm.comment?.trim() || ''
     });
 
     resetDriverForm();

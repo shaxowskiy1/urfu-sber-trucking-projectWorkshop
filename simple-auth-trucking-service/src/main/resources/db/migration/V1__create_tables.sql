@@ -10,6 +10,7 @@ CREATE TABLE drivers (
                          name VARCHAR(255) NOT NULL,
                          phone VARCHAR(20) NOT NULL,
                          licenseNumber VARCHAR(50) NOT NULL UNIQUE,
+                         license_number VARCHAR(50) NOT NULL UNIQUE,
                          availability VARCHAR(50) NOT NULL DEFAULT 'Доступен',
                          comment VARCHAR(1000)
 );
@@ -22,7 +23,6 @@ CREATE TABLE trucks (
                         licensePlate VARCHAR(20) NOT NULL UNIQUE,
                         vinNumber VARCHAR(50) NOT NULL UNIQUE,
                         maintenanceStatus VARCHAR(50) NOT NULL DEFAULT 'Исправен',
-                        currentLocation VARCHAR(500) NOT NULL,
                         comment VARCHAR(1000)
 );
 
