@@ -3,10 +3,11 @@
  */
 
 export interface CalculatedDriverItem {
-  id: number;
+  name: string; // Имя водителя
   originLatitude: string;
   originLongitude: string;
-  deliveryDate: string; // ISO datetime
+  deliveryDate: string; // ISO datetime (LocalDateTime из Java)
+  origin?: string; // Адрес отправления
 }
 
 export interface CalculateResult {
@@ -17,28 +18,42 @@ export interface CalculateResult {
 
 const BASE_URL = 'http://localhost:8081';
 
-const FALLBACK_DATA: CalculatedDriverItem[] = [
-  {
-    id: 4,
-    originLatitude: '00.75000058',
-    originLongitude: '3007.61730000',
-    deliveryDate: '2024-01-20T16:00:00'
-  },
-  {
-    id: 5,
-    originLatitude: '500005.700000558',
-    originLongitude: '37.6173',
-    deliveryDate: '2024-01-20T18:00:00'
-  }
-];
-
-export async function fetchCalculatedDrivers(): Promise<CalculateResult> {
+export async function fetchCalculatedDrivers(
+  orderLatitude?: number,
+  orderLongitude?: number,
+  deliveryDateTime?: string
+): Promise<CalculateResult> {
   try {
-    const requestBody = {
-      localDateTime: "2024-01-20T22:00:00",
-      longitute: 37.6173,  // Обратите внимание: в вашем примере опечатка "longitute"
-      latitude: 55.7558
+    // Формируем правильный формат ISO 8601 для LocalDateTime (без временной зоны и миллисекунд)
+    const formatLocalDateTime = (dateTime?: string): string => {
+      if (dateTime) {
+        // Убираем временную зону и миллисекунды, если они есть
+        return dateTime.replace(/\.\d{3}Z?$/, '').replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '');
+      }
+      // Fallback: текущая дата и время в формате ISO без временной зоны
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     };
+
+    // Используем данные из заказа, если они переданы
+    // Проверяем, что координаты валидны (не null, не undefined, не NaN)
+    const validLongitude = (orderLongitude != null && !isNaN(orderLongitude)) ? orderLongitude : 37.6173;
+    const validLatitude = (orderLatitude != null && !isNaN(orderLatitude)) ? orderLatitude : 55.7558;
+    
+    // ВАЖНО: на бэкенде поле называется longitute (с опечаткой), а не longitude
+    const requestBody = {
+      localDateTime: formatLocalDateTime(deliveryDateTime),
+      longitute: validLongitude, // Используем longitute для соответствия бэкенду
+      latitude: validLatitude
+    };
+    
+    console.log('Отправка запроса на подбор водителей:', requestBody);
 
     const response = await fetch(`${BASE_URL}/api/calculate`, {
       method: 'POST',
@@ -49,26 +64,41 @@ export async function fetchCalculatedDrivers(): Promise<CalculateResult> {
       body: JSON.stringify(requestBody)
     });
 
-    if (!response.ok) {
-      // Возвращаем заглушку при недоступности бэка
+    const responseData = await response.json();
+    
+    // Проверяем, если ответ содержит сообщение об отсутствии водителей
+    if (responseData && typeof responseData === 'object' && 'message' in responseData) {
       return {
         success: true,
-        data: FALLBACK_DATA,
-        error: `HTTP ${response.status}`
+        data: responseData.drivers || [],
+        error: responseData.message
+      };
+    }
+    
+    // Если ответ - массив, возвращаем его
+    if (Array.isArray(responseData)) {
+      return {
+        success: true,
+        data: responseData
+      };
+    }
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        data: [],
+        error: `HTTP ${response.status}: ${response.statusText}`
       };
     }
 
-    const data = (await response.json()) as CalculatedDriverItem[];
-
     return {
       success: true,
-      data
+      data: []
     };
   } catch (error) {
-    // Возвращаем заглушку при ошибке сети / CORS / etc
     return {
-      success: true,
-      data: FALLBACK_DATA,
+      success: false,
+      data: [],
       error: error instanceof Error ? error.message : 'Неизвестная ошибка'
     };
   }

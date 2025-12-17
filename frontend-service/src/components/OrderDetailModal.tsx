@@ -308,26 +308,62 @@ export function OrderDetailModal({
     setCalcLoading(true);
     setCalcError(null);
     setCalcData(null);
-    const result = await fetchCalculatedDrivers();
+    
+    // Получаем координаты и дату из заказа
+    const orderLatitude = order.destinationLatitude ? parseFloat(order.destinationLatitude.toString()) : undefined;
+    const orderLongitude = order.destinationLongitude ? parseFloat(order.destinationLongitude.toString()) : undefined;
+    
+    // Формируем правильный формат ISO 8601 для LocalDateTime (без временной зоны)
+    let deliveryDateTime: string | undefined;
+    if (order.deliveryDate) {
+      if (order.deliveryTime) {
+        // Если время уже в формате HH:mm:ss, используем как есть
+        // Если в формате HH:mm, добавляем секунды
+        const timePart = order.deliveryTime.includes(':') 
+          ? (order.deliveryTime.split(':').length === 2 
+              ? `${order.deliveryTime}:00` 
+              : order.deliveryTime)
+          : `${order.deliveryTime}:00:00`;
+        deliveryDateTime = `${order.deliveryDate}T${timePart}`;
+      } else {
+        deliveryDateTime = `${order.deliveryDate}T12:00:00`;
+      }
+    }
+    
+    const result = await fetchCalculatedDrivers(orderLatitude, orderLongitude, deliveryDateTime);
     if (result.success) {
       setCalcData(result.data);
+      // Если есть сообщение об отсутствии водителей, показываем его как информационное сообщение
+      if (result.error && result.data.length === 0) {
+        setCalcError(null); // Не показываем как ошибку, а как информационное сообщение
+      }
     } else {
       setCalcError(result.error || 'Ошибка запроса');
     }
     setCalcLoading(false);
   };
 
-  const handleAssignCalculated = async (candidateId: number) => {
-    if (!order) return;
-    setAssignLoadingId(candidateId);
+  const handleAssignCalculated = async (candidateIndex: number) => {
+    if (!order || !calcData) return;
+    const candidate = calcData[candidateIndex];
+    if (!candidate) return;
+    
+    setAssignLoadingId(candidateIndex);
     setAssignError(null);
     setAssignSuccessId(null);
-    const res = await assignCalculatedDriver({ orderId: order.id, candidateId });
-    if (res.success) {
-      setAssignSuccessId(candidateId);
-      // Сообщаем родителю о назначении, чтобы появился блок "Назначенный транспорт"
-      onAssignDriverToOrder(order.id, String(candidateId));
+    
+    // Находим водителя по имени для назначения
+    const driver = drivers.find(d => d.name === candidate.name);
+    if (driver) {
+      onAssignDriverToOrder(order.id, driver.id);
+      setAssignSuccessId(candidateIndex);
     } else {
+      setAssignError('Водитель не найден в системе');
+    }
+    
+    // Также отправляем запрос на бэкенд, если нужно
+    const res = await assignCalculatedDriver({ orderId: order.id, candidateId: candidateIndex });
+    if (!res.success && !driver) {
       setAssignError(res.error || 'Ошибка назначения');
     }
     setAssignLoadingId(null);
@@ -633,40 +669,62 @@ export function OrderDetailModal({
                             Скрыть
                           </Button>
                         </div>
-                        {(calcData ?? []).map((item, index) => (
-                            <Card key={item.id ? `calc-${item.id}` : `calc-item-${index}`} className="border">
-                            <CardContent className="pt-4">
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div>
-                                  <div className="text-sm text-muted-foreground">ID</div>
-                                  <div className="font-semibold">{item.id}</div>
-                                </div>
-                                <div>
-                                  <div className="text-sm text-muted-foreground">Координаты отправления</div>
-                                  <div className="font-medium">{item.originLatitude}, {item.originLongitude}</div>
-                                </div>
-                                <div>
-                                  <div className="text-sm text-muted-foreground">Дата доставки</div>
-                                  <div className="font-medium">{formatIsoDateTime(item.deliveryDate)}</div>
-                                </div>
-                              </div>
-                              <div className="mt-4 flex items-center gap-3">
-                                <Button
-                                  onClick={() => handleAssignCalculated(item.id)}
-                                  disabled={assignLoadingId === item.id}
-                                >
-                                  {assignLoadingId === item.id ? 'Назначение...' : 'Назначить водителя'}
-                                </Button>
-                                {assignSuccessId === item.id && (
-                                  <span className="text-green-600 text-sm">Назначено</span>
-                                )}
-                              </div>
-                              {assignError && (
-                                <div className="text-red-600 text-sm mt-2">{assignError}</div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {calcData && calcData.length === 0 && (
+                          <div className="text-center py-8 text-muted-foreground">
+                            Нет доступных водителей на данный момент
+                          </div>
+                        )}
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-3 font-semibold">Имя водителя</th>
+                                <th className="text-left p-3 font-semibold">Координаты</th>
+                                <th className="text-left p-3 font-semibold">Дата доставки</th>
+                                <th className="text-left p-3 font-semibold">Адрес отправления</th>
+                                <th className="text-left p-3 font-semibold">Действие</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(calcData ?? []).map((item, index) => (
+                                <tr key={item.name ? `calc-${item.name}-${index}` : `calc-item-${index}`} className="border-b hover:bg-muted/50">
+                                  <td className="p-3">
+                                    <div className="font-semibold">{item.name || 'Не указано'}</div>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="text-sm">
+                                      <div>Широта: {item.originLatitude}</div>
+                                      <div>Долгота: {item.originLongitude}</div>
+                                    </div>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="font-medium">{formatIsoDateTime(item.deliveryDate)}</div>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="text-sm text-muted-foreground">{item.origin || 'Не указано'}</div>
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleAssignCalculated(index)}
+                                        disabled={assignLoadingId === index}
+                                      >
+                                        {assignLoadingId === index ? 'Назначение...' : 'Назначить'}
+                                      </Button>
+                                      {assignSuccessId === index && (
+                                        <span className="text-green-600 text-sm">✓</span>
+                                      )}
+                                    </div>
+                                    {assignError && assignLoadingId === index && (
+                                      <div className="text-red-600 text-xs mt-1">{assignError}</div>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                         {(calcData?.length ?? 0) === 0 && (
                           <div className="text-center py-8 text-muted-foreground">
                             Данные не найдены
