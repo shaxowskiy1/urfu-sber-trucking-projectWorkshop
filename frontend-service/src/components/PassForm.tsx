@@ -13,10 +13,6 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { FileText, Download, Loader2, AlertCircle } from 'lucide-react';
-import { Checkbox } from './ui/checkbox';
-import { createPassRequest } from '../services/orderApi';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 /**
  * Интерфейс заказа для пропуска
@@ -98,6 +94,25 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
     routeDescription: '',
     additionalNotes: '',
     email: ''
+  });
+
+  // Паспортные данные водителя
+  const [passportData, setPassportData] = useState({
+    fullName: '',
+    birthDate: '',
+    series: '',
+    number: '',
+    issuedBy: '',
+    divisionCode: ''
+  });
+
+  // Отображаемые поля паспорта (чекбоксы)
+  const [passportVisible, setPassportVisible] = useState({
+    fullName: true,
+    birthDate: true,
+    seriesNumber: true,
+    issuedBy: true,
+    divisionCode: true
   });
 
   // Паспортные данные водителя
