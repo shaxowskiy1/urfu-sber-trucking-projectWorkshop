@@ -1,6 +1,6 @@
 /**
  * Компонент панели управления для логистов (грузоперевозчиков)
- * 
+ *
  * Основной интерфейс логиста включает:
  * - Таблицу всех заказов с возможностью управления
  * - Управление автопарком (водители, тягачи, прицепы)
@@ -15,7 +15,7 @@ import { Button } from './ui/button';
 import { OrderTable } from './OrderTable';
 import { OrderDetailModal } from './OrderDetailModal';
 import { FleetManagement } from './FleetManagement';
-import { Package, Clock, Plus, Truck } from 'lucide-react';
+import {Package, Clock, Plus, Truck, RefreshCw} from 'lucide-react';
 import { AddOrderModal } from './AddOrderModal';
 import { CompanyOrdersModal } from './CompanyOrdersModal';
 
@@ -150,21 +150,21 @@ interface LogisticianDashboardProps {
  * Панель управления для логиста
  * Показывает статистику, таблицу заказов и управление автопарком
  */
-export function LogisticianDashboard({ 
-  orders, 
-  drivers, 
+export function LogisticianDashboard({
+  orders,
+  drivers,
   trucks,
   trailers,
   fleetAssignments,
-  comments, 
+  comments,
   onUpdateOrderStatus,
   onAssignDriverToOrder,
-  onAddDriver, 
+  onAddDriver,
   onAddTruck,
   onAddTrailer,
   onAddFleetAssignment,
   onDeleteFleetAssignment,
-  onUpdateDriver, 
+  onUpdateDriver,
   onUpdateTruck,
   onUpdateTrailer,
   onAddOrder,
@@ -212,7 +212,35 @@ export function LogisticianDashboard({
     setCompanyOrdersType('company');
     setIsCompanyOrdersOpen(true);
   };
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
+  /**
+   * Обновление статусов заказов через API
+   */
+  const handleRefreshStatuses = async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await fetch('http://localhost:8084/api/status', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка при обновлении статусов');
+      }
+
+      // Можно добавить обработку ответа, если API возвращает данные
+      const data = await response.json();
+      console.log('Статусы обновлены:', data);
+    } catch (error) {
+      console.error('Ошибка при обновлении статусов:', error);
+      alert('Не удалось обновить статусы. Проверьте подключение к серверу.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   /**
    * Показать все заказы менеджера
    */
@@ -272,7 +300,16 @@ export function LogisticianDashboard({
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button 
+              <Button
+                  onClick={handleRefreshStatuses}
+                  className="flex items-center gap-2"
+                  variant="outline"
+                  disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Обновить статусы
+              </Button>
+              <Button
                 onClick={handleAddOrderClick}
                 className="flex items-center gap-2"
                 variant="outline"
@@ -280,7 +317,7 @@ export function LogisticianDashboard({
                 <Plus className="h-4 w-4" />
                 Добавить заказ
               </Button>
-              <Button 
+              <Button
                 onClick={() => setIsFleetManagementOpen(true)}
                 className="flex items-center gap-2"
               >
@@ -291,10 +328,10 @@ export function LogisticianDashboard({
           </div>
         </CardHeader>
         <CardContent>
-          <OrderTable 
-            orders={orders} 
-            drivers={drivers} 
-            trucks={trucks} 
+          <OrderTable
+            orders={orders}
+            drivers={drivers}
+            trucks={trucks}
             comments={comments}
             onOrderClick={handleOrderClick}
             onCompanyClick={handleCompanyClick}

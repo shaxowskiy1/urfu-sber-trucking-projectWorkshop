@@ -31,7 +31,8 @@ public class DriverService {
         List<DriverLegInfo> lastLegs = orderRepository.findLastLegsBefore(coordinatesDateDTO.getLocalDateTime());
         log.info("The list of drivers is: {}", lastLegs.toString());
         if (lastLegs.isEmpty()) {
-            throw new RuntimeException("No drivers are free.");
+            log.warn("Нет доступных водителей для времени: {}", coordinatesDateDTO.getLocalDateTime());
+            return new ArrayList<>(); // Возвращаем пустой список вместо исключения
         }
 
         return solveMatch(coordinatesDateDTO, lastLegs);
@@ -60,7 +61,7 @@ public class DriverService {
             long gapHours = Duration.between(leg.getDeliveryDate(), targetTime).toHours();
             log.info("DriverResponseDTO {}: gapHours = {}, deliveryDate = {}",
                     leg.getDriverId(), gapHours, leg.getDeliveryDate());
-            if (gapHours > 24) {
+            if (gapHours > 48) {
                 log.info("DriverResponseDTO {} filtered by time gap", leg.getDriverId());
                 continue;
             }

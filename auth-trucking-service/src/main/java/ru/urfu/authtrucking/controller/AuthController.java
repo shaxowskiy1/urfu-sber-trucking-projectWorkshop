@@ -111,4 +111,5 @@ public class AuthController {
         log.info("Received logout user");
         return ResponseEntity.noContent().build();
     }
+
 }

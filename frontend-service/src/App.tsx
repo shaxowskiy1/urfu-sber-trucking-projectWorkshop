@@ -24,6 +24,20 @@ import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { updateOrderStatusRequest } from './services/orderApi';
 import { fetchAllOrders, fetchAllDrivers, fetchAllTrucks, fetchAllTrailers, fetchAllFleetAssignments } from './services/dataApi';
+import {
+  createDriver,
+  updateDriver as updateDriverApi,
+  deleteDriver as deleteDriverApi,
+  createTruck,
+  updateTruck as updateTruckApi,
+  deleteTruck as deleteTruckApi,
+  createTrailer,
+  updateTrailer as updateTrailerApi,
+  deleteTrailer as deleteTrailerApi,
+  createFleetAssignment,
+  updateFleetAssignment as updateFleetAssignmentApi,
+  deleteFleetAssignment as deleteFleetAssignmentApi,
+} from './services/fleetApi';
 
 /**
  * Интерфейс пользователя системы
@@ -382,79 +396,149 @@ export default function App() {
   /**
    * Добавление нового водителя в систему
    */
-  const addDriver = (newDriver: Omit<Driver, 'id'>) => {
-    const driver: Driver = {
-      ...newDriver,
-      id: `ВОД-${String(drivers.length + 1).padStart(3, '0')}`
-    };
-    setDrivers([...drivers, driver]);
+  const addDriver = async (newDriver: Omit<Driver, 'id'>) => {
+    try {
+      // Валидация обязательных полей
+      if (!newDriver.name || !newDriver.phone || !newDriver.licenseNumber) {
+        toast.error('Заполните все обязательные поля: ФИО, Телефон, Водительское удостоверение');
+        return;
+      }
+
+      // Генерация уникального ID
+      const existingIds = new Set(drivers.map(d => d.id));
+      let driverId = `ВОД-${String(drivers.length + 1).padStart(3, '0')}`;
+      let counter = 1;
+      while (existingIds.has(driverId)) {
+        driverId = `ВОД-${String(drivers.length + 1 + counter).padStart(3, '0')}`;
+        counter++;
+      }
+
+      // Подготовка данных для отправки
+      const driverData = {
+        id: driverId,
+        name: newDriver.name.trim(),
+        phone: newDriver.phone.trim(),
+        licenseNumber: newDriver.licenseNumber.trim(),
+        availability: newDriver.availability || 'Доступен',
+        comment: newDriver.comment || ''
+      };
+
+      console.log('Отправка данных водителя:', driverData);
+      const driver = await createDriver(driverData);
+      setDrivers([...drivers, driver]);
+      toast.success('Водитель успешно добавлен');
+    } catch (error: any) {
+      console.error('Ошибка при добавлении водителя:', error);
+      const errorMessage = error.message || 'Не удалось добавить водителя';
+      toast.error(errorMessage);
+    }
   };
 
   /**
    * Добавление нового транспортного средства (тягача)
    */
-  const addTruck = (newTruck: Omit<Truck, 'id'>) => {
-    const truck: Truck = {
-      ...newTruck,
-      id: `АВТ-${String(trucks.length + 1).padStart(3, '0')}`
-    };
-    setTrucks([...trucks, truck]);
+  const addTruck = async (newTruck: Omit<Truck, 'id'>) => {
+    try {
+      const truckId = `АВТ-${String(trucks.length + 1).padStart(3, '0')}`;
+      const truck = await createTruck({ ...newTruck, id: truckId });
+      setTrucks([...trucks, truck]);
+      toast.success('Транспортное средство успешно добавлено');
+    } catch (error: any) {
+      console.error('Ошибка при добавлении транспортного средства:', error);
+      toast.error(error.message || 'Не удалось добавить транспортное средство');
+    }
   };
 
   /**
    * Добавление нового прицепа
    */
-  const addTrailer = (newTrailer: Omit<Trailer, 'id'>) => {
-    const trailer: Trailer = {
-      ...newTrailer,
-      id: `ПРЦ-${String(trailers.length + 1).padStart(3, '0')}`
-    };
-    setTrailers([...trailers, trailer]);
+  const addTrailer = async (newTrailer: Omit<Trailer, 'id'>) => {
+    try {
+      const trailerId = `ПРЦ-${String(trailers.length + 1).padStart(3, '0')}`;
+      const trailer = await createTrailer({ ...newTrailer, id: trailerId });
+      setTrailers([...trailers, trailer]);
+      toast.success('Прицеп успешно добавлен');
+    } catch (error: any) {
+      console.error('Ошибка при добавлении прицепа:', error);
+      toast.error(error.message || 'Не удалось добавить прицеп');
+    }
   };
 
   /**
    * Создание связи между водителем, транспортом и прицепом
    */
-  const addFleetAssignment = (assignment: Omit<FleetAssignment, 'id'>) => {
-    const newAssignment: FleetAssignment = {
-      ...assignment,
-      id: `СВЗ-${String(fleetAssignments.length + 1).padStart(3, '0')}`
-    };
-    setFleetAssignments([...fleetAssignments, newAssignment]);
+  const addFleetAssignment = async (assignment: Omit<FleetAssignment, 'id'>) => {
+    try {
+      const assignmentId = `СВЗ-${String(fleetAssignments.length + 1).padStart(3, '0')}`;
+      const newAssignment = await createFleetAssignment({ ...assignment, id: assignmentId });
+      setFleetAssignments([...fleetAssignments, newAssignment]);
+      toast.success('Связка успешно создана');
+    } catch (error: any) {
+      console.error('Ошибка при создании связки:', error);
+      toast.error(error.message || 'Не удалось создать связку');
+    }
   };
 
   /**
    * Удаление связи между элементами автопарка
    */
-  const deleteFleetAssignment = (assignmentId: string) => {
-    setFleetAssignments(fleetAssignments.filter(a => a.id !== assignmentId));
+  const deleteFleetAssignment = async (assignmentId: string) => {
+    try {
+      await deleteFleetAssignmentApi(assignmentId);
+      setFleetAssignments(fleetAssignments.filter(a => a.id !== assignmentId));
+      toast.success('Связка успешно удалена');
+    } catch (error: any) {
+      console.error('Ошибка при удалении связки:', error);
+      toast.error(error.message || 'Не удалось удалить связку');
+    }
   };
 
   /**
    * Обновление данных водителя
    */
-  const updateDriver = (driverId: string, updates: Partial<Driver>) => {
-    setDrivers(drivers.map(driver => 
-      driver.id === driverId ? { ...driver, ...updates } : driver
-    ));
+  const updateDriver = async (driverId: string, updates: Partial<Driver>) => {
+    try {
+      const updated = await updateDriverApi(driverId, updates);
+      setDrivers(drivers.map(driver => 
+        driver.id === driverId ? updated : driver
+      ));
+      toast.success('Данные водителя обновлены');
+    } catch (error: any) {
+      console.error('Ошибка при обновлении водителя:', error);
+      toast.error(error.message || 'Не удалось обновить данные водителя');
+    }
   };
 
   /**
    * Обновление данных транспортного средства
    */
-  const updateTruck = (truckId: string, updates: Partial<Truck>) => {
-    setTrucks(trucks.map(truck => 
-      truck.id === truckId ? { ...truck, ...updates } : truck
-    ));
+  const updateTruck = async (truckId: string, updates: Partial<Truck>) => {
+    try {
+      const updated = await updateTruckApi(truckId, updates);
+      setTrucks(trucks.map(truck => 
+        truck.id === truckId ? updated : truck
+      ));
+      toast.success('Данные транспортного средства обновлены');
+    } catch (error: any) {
+      console.error('Ошибка при обновлении транспортного средства:', error);
+      toast.error(error.message || 'Не удалось обновить данные транспортного средства');
+    }
   };
 
   /**
    * Обновление данных прицепа
    */
-  const updateTrailer = (trailerId: string, updates: Partial<Trailer>) => {
-    setTrailers(trailers.map(trailer => 
-      trailer.id === trailerId ? { ...trailer, ...updates } : trailer
-    ));
+  const updateTrailer = async (trailerId: string, updates: Partial<Trailer>) => {
+    try {
+      const updated = await updateTrailerApi(trailerId, updates);
+      setTrailers(trailers.map(trailer => 
+        trailer.id === trailerId ? updated : trailer
+      ));
+      toast.success('Данные прицепа обновлены');
+    } catch (error: any) {
+      console.error('Ошибка при обновлении прицепа:', error);
+      toast.error(error.message || 'Не удалось обновить данные прицепа');
+    }
   };
 
   // ========================================

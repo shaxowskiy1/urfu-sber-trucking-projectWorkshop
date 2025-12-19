@@ -219,16 +219,29 @@ export function OrderTable({
 
   const handleCreatePass = (order: Order, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     
-    // Найти доступного водителя
-    const availableDriver = drivers.find(driver => driver.availability === 'Доступен');
+    console.log('handleCreatePass вызвана', { order, drivers, trucks });
+    
+    // Использовать назначенного водителя из заказа, если он есть
+    let driverToUse: Driver | null = null;
+    if (order.assignedDriverId) {
+      driverToUse = drivers.find(driver => driver.id === order.assignedDriverId) || null;
+    }
+    
+    // Если водитель не назначен, найти доступного
+    if (!driverToUse) {
+      driverToUse = drivers.find(driver => driver.availability === 'Доступен') || null;
+    }
     
     // Найти первый доступный грузовик
-    const availableTruck = trucks.find(truck => truck.maintenanceStatus === 'Исправен');
+    const availableTruck = trucks.find(truck => truck.maintenanceStatus === 'Исправен') || null;
+    
+    console.log('Открытие формы пропуска', { order, driverToUse, availableTruck });
     
     setSelectedOrderForPass(order);
-    setSelectedDriver(availableDriver || null);
-    setSelectedTruck(availableTruck || null);
+    setSelectedDriver(driverToUse);
+    setSelectedTruck(availableTruck);
     setIsPassFormOpen(true);
   };
 

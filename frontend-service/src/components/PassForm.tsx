@@ -13,8 +13,6 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { FileText, Download } from 'lucide-react';
-import { Checkbox } from './ui/checkbox';
 
 /**
  * Интерфейс заказа для пропуска
@@ -94,7 +92,27 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
     validUntil: '',
     purpose: 'Коммерческая перевозка грузов',
     routeDescription: '',
-    additionalNotes: ''
+    additionalNotes: '',
+    email: ''
+  });
+
+  // Паспортные данные водителя
+  const [passportData, setPassportData] = useState({
+    fullName: '',
+    birthDate: '',
+    series: '',
+    number: '',
+    issuedBy: '',
+    divisionCode: ''
+  });
+
+  // Отображаемые поля паспорта (чекбоксы)
+  const [passportVisible, setPassportVisible] = useState({
+    fullName: true,
+    birthDate: true,
+    seriesNumber: true,
+    issuedBy: true,
+    divisionCode: true
   });
 
   // Паспортные данные водителя
@@ -118,29 +136,139 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
 
   // Флаг сгенерированного пропуска
   const [isGenerated, setIsGenerated] = useState(false);
-
-  // Проверка наличия всех необходимых данных
-  if (!order || !driver || !truck) return null;
+  
+  // Состояние загрузки и ошибок
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   /**
-   * Генерация пропуска с автоматическим заполнением данных
+   * Генерация пропуска с автоматическим заполнением данных и отправкой на бэкенд
    */
-  const generatePass = () => {
-    // Автоматическое заполнение описания маршрута
-    const routeDesc = `Маршрут: ${order.origin} → ${order.destination}. Груз: ${order.cargoType}. Вес: ${order.weight}. Объем: ${order.volume}.`;
+  const generatePass = async () => {
+    console.log('generatePass вызвана', { order, driver, truck, passData, passportData });
     
-    // Расчет срока действия (обычно +30 дней от даты выдачи)
-    const issueDate = new Date(passData.issueDate);
-    const validDate = new Date(issueDate);
-    validDate.setDate(validDate.getDate() + 30);
-    
-    setPassData(prev => ({
-      ...prev,
-      routeDescription: routeDesc,
-      validUntil: validDate.toISOString().split('T')[0]
-    }));
-    
-    setIsGenerated(true);
+    if (!order) {
+      setError('Необходимо указать заказ');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      // Автоматическое заполнение описания маршрута
+      const routeDesc = `Маршрут: ${order.origin} → ${order.destination}. Груз: ${order.cargoType}. Вес: ${order.weight}. Объем: ${order.volume}.`;
+      
+      // Расчет срока действия (обычно +30 дней от даты выдачи)
+      const issueDate = new Date(passData.issueDate);
+      const validDate = new Date(issueDate);
+      validDate.setDate(validDate.getDate() + 30);
+      
+      const updatedPassData = {
+        ...passData,
+        routeDescription: routeDesc,
+        validUntil: validDate.toISOString().split('T')[0]
+      };
+      
+      setPassData(updatedPassData);
+
+      // Подготовка данных для отправки на бэкенд - включаем все поля формы
+      const passPayload: any = {
+        passNumber: updatedPassData.passNumber,
+        orderId: order.id,
+        issueDate: updatedPassData.issueDate,
+        validUntil: updatedPassData.validUntil,
+        purpose: updatedPassData.purpose,
+        routeDescription: updatedPassData.routeDescription,
+        additionalNotes: updatedPassData.additionalNotes || undefined,
+        email: updatedPassData.email,
+        // Данные заказа
+        order: {
+          id: order.id,
+          shipperName: order.shipperName,
+          origin: order.origin,
+          destination: order.destination,
+          originLatitude: order.originLatitude,
+          originLongitude: order.originLongitude,
+          destinationLatitude: order.destinationLatitude,
+          destinationLongitude: order.destinationLongitude,
+          trailerType: order.trailerType,
+          volume: order.volume,
+          weight: order.weight,
+          pickupDate: order.pickupDate,
+          pickupTime: order.pickupTime,
+          deliveryDate: order.deliveryDate,
+          deliveryTime: order.deliveryTime,
+          transportationCost: order.transportationCost,
+          status: order.status,
+          cargoType: order.cargoType,
+          specialRequirements: order.specialRequirements,
+          length: order.length,
+          width: order.width,
+          height: order.height,
+          assignedDriverId: order.assignedDriverId,
+        },
+        // Данные водителя (если указан)
+        driver: driver ? {
+          id: driver.id,
+          name: driver.name,
+          phone: driver.phone,
+          licenseNumber: driver.licenseNumber,
+          availability: driver.availability,
+          comment: driver.comment,
+        } : undefined,
+        driverId: driver?.id || undefined,
+        // Данные транспортного средства (если указано)
+        truck: truck ? {
+          id: truck.id,
+          make: truck.make,
+          model: truck.model,
+          year: truck.year,
+          licensePlate: truck.licensePlate,
+          vinNumber: truck.vinNumber,
+          maintenanceStatus: truck.maintenanceStatus,
+          currentLocation: truck.currentLocation,
+          comment: truck.comment,
+        } : undefined,
+        truckId: truck?.id || undefined,
+        // Паспортные данные (только если есть хотя бы одно заполненное поле)
+        passportData: (passportVisible.fullName && passportData.fullName) ||
+                      (passportVisible.birthDate && passportData.birthDate) ||
+                      (passportVisible.seriesNumber && (passportData.series || passportData.number)) ||
+                      (passportVisible.issuedBy && passportData.issuedBy) ||
+                      (passportVisible.divisionCode && passportData.divisionCode)
+          ? {
+              fullName: passportVisible.fullName ? passportData.fullName : undefined,
+              birthDate: passportVisible.birthDate ? passportData.birthDate : undefined,
+              series: passportVisible.seriesNumber ? passportData.series : undefined,
+              number: passportVisible.seriesNumber ? passportData.number : undefined,
+              issuedBy: passportVisible.issuedBy ? passportData.issuedBy : undefined,
+              divisionCode: passportVisible.divisionCode ? passportData.divisionCode : undefined,
+            }
+          : undefined,
+      };
+
+      console.log('Отправка данных на бэкенд:', passPayload);
+
+      // Отправка на бэкенд
+      const result = await createPassRequest(passPayload);
+      
+      console.log('Результат запроса:', result);
+      
+      if (result.success) {
+        setIsGenerated(true);
+        setSuccess(true);
+      } else {
+        setError(result.error || 'Не удалось создать пропуск');
+      }
+    } catch (err) {
+      console.error('Ошибка при создании пропуска:', err);
+      setError(err instanceof Error ? err.message : 'Произошла ошибка при создании пропуска');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   /**
@@ -151,13 +279,18 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
     alert('Функция скачивания PDF будет доступна в полной версии');
   };
 
+  // Проверка наличия заказа - если нет заказа, форма не отображается
+  if (!order) {
+    return null;
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[85vw] w-[85vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Создание пропуска для заказа {order.id}
+            Создание пропуска для заказа {order?.id || 'N/A'}
           </DialogTitle>
           <DialogDescription>
             Генерация пропуска на основе данных заказа, водителя и транспортного средства
@@ -165,8 +298,39 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Сообщения об ошибках и успехе */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Ошибка</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {success && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Успешно</AlertTitle>
+              <AlertDescription>Пропуск успешно создан и отправлен на сервер</AlertDescription>
+            </Alert>
+          )}
+
           {!isGenerated ? (
             <>
+              {/* Предупреждение, если нет водителя или грузовика */}
+              {(!driver || !truck) && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Внимание</AlertTitle>
+                  <AlertDescription>
+                    {!driver && !truck 
+                      ? 'Не указаны водитель и транспортное средство. Пропуск не может быть создан.'
+                      : !driver 
+                      ? 'Не указан водитель. Пропуск не может быть создан.'
+                      : 'Не указано транспортное средство. Пропуск не может быть создан.'}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Информация о заказе */}
               <Card>
                 <CardHeader>
@@ -195,27 +359,29 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
               </Card>
 
               {/* Информация о водителе */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Информация о водителе</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>ФИО водителя</Label>
-                      <div className="font-medium">{driver.name}</div>
+              {driver && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Информация о водителе</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>ФИО водителя</Label>
+                        <div className="font-medium">{driver.name}</div>
+                      </div>
+                      <div>
+                        <Label>Номер водительского удостоверения</Label>
+                        <div className="font-medium">{driver.licenseNumber}</div>
+                      </div>
+                      <div>
+                        <Label>Телефон</Label>
+                        <div className="font-medium">{driver.phone}</div>
+                      </div>
                     </div>
-                    <div>
-                      <Label>Номер водительского удостоверения</Label>
-                      <div className="font-medium">{driver.licenseNumber}</div>
-                    </div>
-                    <div>
-                      <Label>Телефон</Label>
-                      <div className="font-medium">{driver.phone}</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Паспортные данные */}
               <Card>
@@ -397,31 +563,33 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
               </Card>
 
               {/* Информация о транспорте */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Информация о транспортном средстве</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Марка и модель</Label>
-                      <div className="font-medium">{truck.make} {truck.model}</div>
+              {truck && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Информация о транспортном средстве</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Марка и модель</Label>
+                        <div className="font-medium">{truck.make} {truck.model}</div>
+                      </div>
+                      <div>
+                        <Label>Год выпуска</Label>
+                        <div className="font-medium">{truck.year}</div>
+                      </div>
+                      <div>
+                        <Label>Государственный номер</Label>
+                        <div className="font-medium">{truck.licensePlate}</div>
+                      </div>
+                      <div>
+                        <Label>VIN номер</Label>
+                        <div className="font-medium">{truck.vinNumber}</div>
+                      </div>
                     </div>
-                    <div>
-                      <Label>Год выпуска</Label>
-                      <div className="font-medium">{truck.year}</div>
-                    </div>
-                    <div>
-                      <Label>Государственный номер</Label>
-                      <div className="font-medium">{truck.licensePlate}</div>
-                    </div>
-                    <div>
-                      <Label>VIN номер</Label>
-                      <div className="font-medium">{truck.vinNumber}</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Параметры пропуска */}
               <Card>
@@ -455,6 +623,17 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
                         onChange={(e) => setPassData(prev => ({ ...prev, purpose: e.target.value }))}
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email для отправки пропуска</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={passData.email}
+                        onChange={(e) => setPassData(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="example@mail.com"
+                        required
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="additionalNotes">Дополнительные примечания</Label>
@@ -470,12 +649,25 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
               </Card>
 
               <div className="flex justify-end space-x-4">
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="outline" onClick={onClose} disabled={isLoading}>
                   Отмена
                 </Button>
-                <Button onClick={generatePass} className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Создать пропуск
+                <Button 
+                  onClick={generatePass} 
+                  className="flex items-center gap-2"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Создание...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Создать пропуск
+                    </>
+                  )}
                 </Button>
               </div>
             </>
@@ -490,14 +682,16 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
                 <CardContent className="space-y-6 pt-6">
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-semibold">ИНФОРМАЦИЯ О ВОДИТЕЛЕ:</Label>
-                        <div className="mt-1 space-y-1">
-                          <div>ФИО: {driver.name}</div>
-                          <div>Водительское удостоверение: {driver.licenseNumber}</div>
-                          <div>Телефон: {driver.phone}</div>
+                      {driver && (
+                        <div>
+                          <Label className="text-sm font-semibold">ИНФОРМАЦИЯ О ВОДИТЕЛЕ:</Label>
+                          <div className="mt-1 space-y-1">
+                            <div>ФИО: {driver.name}</div>
+                            <div>Водительское удостоверение: {driver.licenseNumber}</div>
+                            <div>Телефон: {driver.phone}</div>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Паспортные данные (только активные чекбоксы) */}
                       {(passportVisible.fullName ||
@@ -533,15 +727,17 @@ export function PassForm({ isOpen, onClose, order, driver, truck }: PassFormProp
                         </div>
                       )}
 
-                      <div>
-                        <Label className="text-sm font-semibold">ТРАНСПОРТНОЕ СРЕДСТВО:</Label>
-                        <div className="mt-1 space-y-1">
-                          <div>Марка/модель: {truck.make} {truck.model}</div>
-                          <div>Год выпуска: {truck.year}</div>
-                          <div>Гос. номер: {truck.licensePlate}</div>
-                          <div>VIN: {truck.vinNumber}</div>
+                      {truck && (
+                        <div>
+                          <Label className="text-sm font-semibold">ТРАНСПОРТНОЕ СРЕДСТВО:</Label>
+                          <div className="mt-1 space-y-1">
+                            <div>Марка/модель: {truck.make} {truck.model}</div>
+                            <div>Год выпуска: {truck.year}</div>
+                            <div>Гос. номер: {truck.licensePlate}</div>
+                            <div>VIN: {truck.vinNumber}</div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                     
                     <div className="space-y-4">
